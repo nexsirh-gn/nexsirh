@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nex'SIRH — Console Administrateur de la plateforme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vert:#0F5C49; --vert2:#0A3F33; --vert3:#124F41; --menthe:#E7F2EE; --menthe2:#F1F7F4;
+  --encre:#1C2422; --gris:#5C6B66; --papier:#F6F8F7; --blanc:#FFFFFF;
+  --or:#D9A441; --or-p:#FBF3E2; --rouge:#C24B3A; --rouge-p:#FBEAE7;
+  --bleu:#2E6E8E; --bleu-p:#E8F1F5; --ligne:#DFE8E4;
+  --r:12px; --sh:0 1px 2px rgba(20,40,35,.06),0 4px 14px rgba(20,40,35,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Public Sans',sans-serif;background:var(--papier);color:var(--encre);font-size:14px;line-height:1.5}
+h1,h2,h3,.disp{font-family:'Bricolage Grotesque',sans-serif}
+.mono,.gnf{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+button{font-family:inherit;cursor:pointer;border:none;background:none;font-size:inherit}
+input,select,textarea{font-family:inherit;font-size:14px;padding:9px 12px;border:1.5px solid var(--ligne);border-radius:8px;background:var(--blanc);width:100%;color:var(--encre)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--vert);outline-offset:1px;border-color:var(--vert)}
+label{display:block;font-size:12px;font-weight:600;color:var(--gris);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.hidden{display:none!important}
+
+/* ===== Barre maquettes ===== */
+#mBar{position:sticky;top:0;z-index:400;background:var(--encre);color:#E8EDEB;padding:10px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+#mBar .t{font-family:'Bricolage Grotesque';font-weight:800;font-size:14px;color:var(--or);white-space:nowrap}
+#mBar .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+#mBar .gl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8FA39C;margin:0 4px 0 10px}
+#mBar button{color:#D6E0DC;font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid transparent}
+#mBar button:hover{background:#2B3634}
+#mBar button.on{background:var(--vert);color:#fff;border-color:#1E7A62}
+
+/* ===== Boutons ===== */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;font-weight:600;font-size:13.5px;transition:.15s}
+.btn-p{background:var(--vert);color:#fff}.btn-p:hover{background:var(--vert2)}
+.btn-o{border:1.5px solid var(--ligne);color:var(--encre);background:var(--blanc)}.btn-o:hover{border-color:var(--vert);color:var(--vert)}
+.btn-d{background:var(--rouge);color:#fff}.btn-d:hover{filter:brightness(.92)}
+.btn-g{color:var(--gris)}.btn-g:hover{color:var(--encre)}
+.btn-sm{padding:6px 11px;font-size:12.5px;border-radius:7px}
+.btn-or{background:var(--or);color:#3A2C0E}.btn-or:hover{filter:brightness(.95)}
+
+/* ===== Badges ===== */
+.bg{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:11.5px;font-weight:700}
+.bg::before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor}
+.bg-v{background:var(--menthe);color:var(--vert)}
+.bg-o{background:var(--or-p);color:#96690F}
+.bg-r{background:var(--rouge-p);color:var(--rouge)}
+.bg-b{background:var(--bleu-p);color:var(--bleu)}
+.bg-g{background:#EEF1F0;color:var(--gris)}
+
+/* ===== Écrans plein / auth ===== */
+.full{min-height:calc(100vh - 46px)}
+.auth{display:grid;grid-template-columns:460px 1fr;min-height:calc(100vh - 46px)}
+.auth-side{background:linear-gradient(160deg,var(--vert2),var(--vert) 70%,#15705A);color:#fff;padding:56px 48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.auth-side::after{content:"";position:absolute;right:-90px;bottom:-90px;width:320px;height:320px;border-radius:50%;border:56px solid rgba(217,164,65,.16)}
+.logo{font-family:'Bricolage Grotesque';font-weight:800;font-size:22px;letter-spacing:-.01em}
+.logo b{color:var(--or)}
+.auth-side h1{font-size:34px;font-weight:800;line-height:1.15;margin:18px 0 14px;letter-spacing:-.02em}
+.auth-side p{color:#CFE4DC;font-size:15px;max-width:340px}
+.auth-side .pt{font-size:12px;color:#9FC3B7}
+.auth-main{display:flex;align-items:center;justify-content:center;padding:40px}
+.card{background:var(--blanc);border:1px solid var(--ligne);border-radius:16px;box-shadow:var(--sh)}
+.auth-card{width:420px;padding:36px}
+.auth-card h2{font-size:22px;font-weight:700;margin-bottom:4px}
+.auth-card .sub{color:var(--gris);font-size:13.5px;margin-bottom:24px}
+.fld{margin-bottom:16px}
+.link{color:var(--vert);font-weight:600;text-decoration:none;font-size:13px}
+.steps{display:flex;gap:8px;margin-bottom:22px}
+.steps span{flex:1;height:4px;border-radius:99px;background:var(--ligne)}
+.steps span.on{background:var(--vert)}
+
+/* ===== Shell application ===== */
+#appShell{display:grid;grid-template-columns:236px 1fr;min-height:calc(100vh - 46px)}
+.rail{background:var(--vert2);color:#C9DDD5;display:flex;flex-direction:column;padding:20px 12px;position:sticky;top:46px;height:calc(100vh - 46px)}
+.rail .logo{color:#fff;padding:0 12px 18px;font-size:18px}
+.rail .sec{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#7FA396;padding:14px 12px 6px}
+.rail a{display:flex;align-items:center;gap:10px;color:#C9DDD5;text-decoration:none;padding:9px 12px;border-radius:9px;font-size:13.5px;font-weight:500;position:relative;margin-bottom:1px}
+.rail a:hover{background:rgba(255,255,255,.07);color:#fff}
+.rail a.on{background:var(--vert3);color:#fff;font-weight:600}
+.rail a.on::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:4px;border-radius:0 4px 4px 0;background:var(--or)}
+.rail .ico{width:18px;text-align:center;opacity:.9}
+.rail .bot{margin-top:auto;border-top:1px solid rgba(255,255,255,.12);padding-top:12px}
+.rail .usr{display:flex;gap:10px;align-items:center;padding:8px 12px}
+.av{width:32px;height:32px;border-radius:99px;background:var(--or);color:#3A2C0E;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex:none}
+.av.g{background:var(--menthe);color:var(--vert)}
+.rail .usr small{display:block;color:#8FB3A7;font-size:11px}
+
+.topbar{background:var(--blanc);border-bottom:1px solid var(--ligne);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:46px;z-index:50}
+.topbar h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
+.crumb{color:var(--gris);font-size:12.5px}
+.topbar .sp{flex:1}
+.srch{position:relative;width:260px}
+.srch input{padding-left:34px}
+.srch::before{content:"⌕";position:absolute;left:11px;top:7px;font-size:17px;color:var(--gris)}
+.bell{position:relative;font-size:18px;color:var(--gris);padding:6px}
+.bell i{position:absolute;top:2px;right:0;width:8px;height:8px;border-radius:99px;background:var(--rouge);border:2px solid #fff;font-style:normal}
+.main{padding:26px 28px 60px}
+.view{display:none}.view.on{display:block}
+
+/* ===== Composants ===== */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+.kpi{background:var(--blanc);border:1px solid var(--ligne);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
+.kpi .l{font-size:12px;color:var(--gris);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.kpi .v{font-family:'IBM Plex Mono';font-size:24px;font-weight:600;margin:6px 0 4px;letter-spacing:-.02em}
+.kpi .d{font-size:12px;color:var(--gris)}
+.kpi .d b{color:var(--vert)}
+.kpi.gold{border-top:3px solid var(--or)}
+.grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:18px}
+.panel{background:var(--blanc);border:1px solid var(--ligne);border-radius:var(--r);box-shadow:var(--sh)}
+.panel .hd{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--ligne)}
+.panel .hd h3{font-size:15px;font-weight:700}
+.panel .hd .sp{flex:1}
+.panel .bd{padding:18px}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--gris);text-align:left;padding:10px 14px;border-bottom:1px solid var(--ligne);background:var(--menthe2);font-weight:700}
+td{padding:11px 14px;border-bottom:1px solid #ECF1EF;font-size:13.5px;vertical-align:middle}
+tr:hover td{background:var(--menthe2)}
+td.gnf,th.num{text-align:right}
+.emp{display:flex;gap:10px;align-items:center}
+.emp small{display:block;color:var(--gris);font-size:11.5px}
+.emp b{font-size:13.5px}
+.tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--ligne);margin-bottom:20px}
+.tabs button{padding:10px 16px;font-weight:600;color:var(--gris);border-bottom:2.5px solid transparent;margin-bottom:-1.5px;font-size:13.5px}
+.tabs button.on{color:var(--vert);border-color:var(--vert)}
+.tabs button:hover{color:var(--encre)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+.fgrid .w{grid-column:1/-1}
+.alert{display:flex;gap:12px;padding:13px 15px;border-radius:10px;font-size:13px;margin-bottom:10px;align-items:flex-start}
+.alert .ic{font-size:16px}
+.alert.or{background:var(--or-p);color:#7A560D;border:1px solid #EBD9AF}
+.alert.rg{background:var(--rouge-p);color:#8E3325;border:1px solid #F0CFC8}
+.alert.vt{background:var(--menthe);color:var(--vert2);border:1px solid #CBE2D9}
+.bars{display:flex;align-items:flex-end;gap:10px;height:150px;padding:10px 4px 0}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.bar i{width:100%;max-width:38px;background:linear-gradient(180deg,#1B7A61,var(--vert));border-radius:6px 6px 0 0;font-style:normal}
+.bar.hl i{background:linear-gradient(180deg,#E8B95C,var(--or))}
+.bar small{font-size:10.5px;color:var(--gris)}
+.donut{width:130px;height:130px;border-radius:50%;background:conic-gradient(var(--vert) 0 46%,var(--or) 46% 71%,var(--bleu) 71% 88%,#B9CCC5 88%);position:relative;flex:none}
+.donut::after{content:"";position:absolute;inset:26px;border-radius:50%;background:var(--blanc)}
+.leg{font-size:12.5px;display:grid;gap:8px}
+.leg i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:7px;font-style:normal}
+.tools{display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+.tools .sp{flex:1}
+.chip{padding:6px 12px;border:1.5px solid var(--ligne);border-radius:99px;font-size:12.5px;font-weight:600;color:var(--gris);background:var(--blanc)}
+.chip.on{background:var(--vert);border-color:var(--vert);color:#fff}
+.pgn{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;color:var(--gris);font-size:12.5px}
+.pgn .pgs{display:flex;gap:4px}
+.pgn button{width:28px;height:28px;border-radius:7px;border:1px solid var(--ligne);font-size:12px;background:#fff}
+.pgn button.on{background:var(--vert);color:#fff;border-color:var(--vert)}
+.stat-line{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--ligne);font-size:13px}
+.stat-line:last-child{border:none}
+.stat-line b.gnf{font-weight:600}
+.timeline{position:relative;padding-left:22px}
+.timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--ligne)}
+.tl{position:relative;padding-bottom:18px}
+.tl::before{content:"";position:absolute;left:-21px;top:4px;width:12px;height:12px;border-radius:99px;background:var(--blanc);border:3px solid var(--vert)}
+.tl.gold::before{border-color:var(--or)}
+.tl small{color:var(--gris);font-size:11.5px;display:block}
+.wk{display:grid;grid-template-columns:170px repeat(14,1fr);gap:3px;font-size:11px}
+.wk .nm{font-weight:600;font-size:12px;display:flex;align-items:center}
+.wk .dy{height:26px;border-radius:5px;background:var(--menthe2);border:1px solid #E6EEEA}
+.wk .dy.we{background:#EDF0EF}
+.wk .dy.ca{background:var(--vert);border-color:var(--vert)}
+.wk .dy.cm{background:var(--rouge);border-color:var(--rouge)}
+.wk .dy.pm{background:var(--or);border-color:var(--or)}
+.wk .hd7{color:var(--gris);text-align:center;font-size:10px;padding-bottom:2px}
+.prog{height:8px;border-radius:99px;background:var(--ligne);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--vert);border-radius:99px;font-style:normal}
+.prog i.o{background:var(--or)}
+
+/* ===== Bulletin ===== */
+.bltn{font-size:12.5px}
+.bltn .bh{display:flex;justify-content:space-between;border:1.5px solid var(--encre);padding:14px;border-radius:10px 10px 0 0}
+.bltn .bh h4{font-family:'Bricolage Grotesque';font-size:16px}
+.bltn table{border:1.5px solid var(--encre);border-top:none}
+.bltn th{background:var(--menthe);color:var(--encre)}
+.bltn td{padding:7px 12px;font-size:12.5px}
+.bltn .tot td{background:var(--menthe2);font-weight:700}
+.bltn .net td{background:var(--vert);color:#fff;font-weight:700;font-size:14px}
+
+/* ===== Modales & toasts ===== */
+.ovl{position:fixed;inset:0;background:rgba(16,28,24,.55);backdrop-filter:blur(2px);z-index:500;display:none;align-items:flex-start;justify-content:center;padding:60px 20px;overflow:auto}
+.ovl.on{display:flex}
+.mdl{background:var(--blanc);border-radius:16px;width:560px;max-width:100%;box-shadow:0 24px 60px rgba(10,30,25,.3);animation:pop .18s ease}
+.mdl.lg{width:760px}.mdl.sm{width:440px}
+@keyframes pop{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.mdl .mh{display:flex;align-items:flex-start;gap:12px;padding:20px 24px 0}
+.mdl .mh h3{font-size:17px;font-weight:700}
+.mdl .mh p{color:var(--gris);font-size:13px;margin-top:3px}
+.mdl .x{margin-left:auto;font-size:20px;color:var(--gris);line-height:1;padding:2px 6px;border-radius:6px}
+.mdl .x:hover{background:var(--menthe2);color:var(--encre)}
+.mdl .mb{padding:20px 24px}
+.mdl .mf{display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--ligne);background:var(--menthe2);border-radius:0 0 16px 16px}
+.ic-warn{width:42px;height:42px;border-radius:12px;background:var(--or-p);color:#96690F;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.ic-dgr{width:42px;height:42px;border-radius:12px;background:var(--rouge-p);color:var(--rouge);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+#toast{position:fixed;bottom:24px;right:24px;z-index:600;display:flex;flex-direction:column;gap:10px}
+.tst{background:var(--encre);color:#fff;padding:13px 18px;border-radius:11px;font-size:13.5px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;animation:pop .2s}
+.tst i{font-style:normal;color:var(--or)}
+
+/* ===== Portail employé ===== */
+.portail-top{background:var(--vert2);color:#fff;padding:0 28px}
+.portail-top .in{display:flex;align-items:center;gap:26px;height:60px}
+.portail-top nav{display:flex;gap:6px;height:100%}
+.portail-top nav button{color:#B9D5CB;font-weight:600;padding:0 14px;border-bottom:3px solid transparent;font-size:13.5px}
+.portail-top nav button.on{color:#fff;border-color:var(--or)}
+.hero-emp{background:linear-gradient(120deg,var(--vert2),var(--vert));color:#fff;padding:30px 28px}
+.hero-emp h2{font-size:23px;font-weight:800;letter-spacing:-.01em}
+.hero-emp p{color:#C6E0D7;font-size:13.5px}
+
+/* ===== Landing / pricing ===== */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.plan{border:1.5px solid var(--ligne);border-radius:14px;padding:22px;background:var(--blanc);position:relative}
+.plan.hl{border-color:var(--or);box-shadow:0 8px 26px rgba(217,164,65,.18)}
+.plan .tag{position:absolute;top:-11px;left:20px;background:var(--or);color:#3A2C0E;font-size:10.5px;font-weight:800;letter-spacing:.06em;padding:3px 10px;border-radius:99px;text-transform:uppercase}
+.plan h4{font-size:16px;font-weight:700}
+.plan .px{font-family:'IBM Plex Mono';font-size:24px;font-weight:600;margin:10px 0 2px}
+.plan .px small{font-size:12px;color:var(--gris);font-family:'Public Sans'}
+.plan ul{list-style:none;margin:14px 0 18px;display:grid;gap:8px;font-size:13px}
+.plan li::before{content:"✓";color:var(--vert);font-weight:800;margin-right:8px}
+.note{font-size:12px;color:var(--gris)}
+.annot{background:var(--encre);color:#D6E0DC;font-size:12px;padding:8px 14px;border-radius:8px;display:inline-block;margin-bottom:16px}
+.annot b{color:var(--or)}
+@media(max-width:1100px){.kpis{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.auth{grid-template-columns:1fr}.auth-side{display:none}#appShell{grid-template-columns:200px 1fr}.plans{grid-template-columns:1fr}}
+
+/* ===== THÈME CONSOLE ADMIN (anthracite + or) ===== */
+:root{--adm:#17201D;--adm2:#0F1614;--adm3:#233029}
+.rail{background:var(--adm2)}
+.rail a.on{background:var(--adm3)}
+.rail .sec{color:#6E837B}
+.auth-side{background:linear-gradient(160deg,#0C1210,var(--adm) 65%,#233029)}
+#mBar .t{color:var(--or)}
+.btn-p{background:var(--adm)}. btn-p:hover{background:#000}
+.btn-p:hover{background:var(--adm2)}
+.tabs button.on{color:#96690F;border-color:var(--or)}
+.rail a.on::before{background:var(--or)}
+.chip.on{background:var(--adm);border-color:var(--adm)}
+.kpi .v{color:var(--adm)}
+.pgn button.on{background:var(--adm);border-color:var(--adm)}
+.sev{display:inline-block;width:9px;height:9px;border-radius:99px;margin-right:6px}
+.sev.ok{background:#2E9E6B}.sev.warn{background:var(--or)}.sev.err{background:var(--rouge)}
+.spark{display:flex;align-items:flex-end;gap:2px;height:34px}
+.spark i{width:6px;background:#B9CCC5;border-radius:2px;font-style:normal}
+.spark i.g{background:var(--vert)}
+.mrr{font-family:'IBM Plex Mono';font-size:30px;font-weight:600;letter-spacing:-.02em}
+.hbar{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12.5px}
+.hbar .nm{width:130px;color:var(--gris)}
+.hbar .tr{flex:1;height:10px;background:var(--ligne);border-radius:99px;overflow:hidden}
+.hbar .tr i{display:block;height:100%;background:var(--adm);border-radius:99px;font-style:normal}
+.hbar .tr i.o{background:var(--or)}
+.hbar b{width:90px;text-align:right}
+/* ===== Menu profil ===== */
+.pmenu{position:relative}
+.pchip{display:flex;align-items:center;gap:9px;padding:5px 10px 5px 5px;border-radius:99px;border:1.5px solid var(--ligne);background:var(--blanc)}
+.pchip:hover{border-color:var(--adm)}
+.pchip .pinfo{text-align:left;line-height:1.15}
+.pchip .pinfo b{font-size:12.5px;display:block}
+.pchip .pinfo small{font-size:10.5px;color:var(--gris)}
+.pchip .chev{color:var(--gris);font-size:10px;transition:.15s}
+.pmenu.open .chev{transform:rotate(180deg)}
+.pdrop{position:absolute;top:calc(100% + 8px);right:0;width:290px;background:var(--blanc);border:1px solid var(--ligne);border-radius:14px;box-shadow:0 18px 44px rgba(10,20,17,.25);z-index:220;display:none;animation:pop .15s ease;overflow:hidden}
+.pdrop.on{display:block}
+.pdrop .ph{display:flex;gap:11px;align-items:center;padding:14px;background:#F3F1EA;border-bottom:1px solid var(--ligne)}
+.pdrop .ph b{font-size:14px}
+.pdrop .ph small{display:block;color:var(--gris);font-size:11.5px}
+.pdrop a{display:flex;gap:11px;align-items:center;padding:10px 15px;color:var(--encre);text-decoration:none;font-size:13.5px;font-weight:500;cursor:pointer}
+.pdrop a:hover{background:#F3F1EA}
+.pdrop a .pi{width:18px;text-align:center;opacity:.75}
+.pdrop a.dgr{color:var(--rouge)}
+.pdrop a.dgr:hover{background:var(--rouge-p)}
+.pdrop .dv{height:1px;background:var(--ligne);margin:4px 0}
+.pdrop .foot{padding:8px 15px 11px;font-size:10.5px;color:var(--gris);border-top:1px solid var(--ligne)}
+.tglrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed var(--ligne)}
+.tglrow:last-child{border:none}
+.tglrow small{display:block;color:var(--gris);font-size:11.5px}
+</style>
+</head>
+<body>
+<!-- ======= BARRE MAQUETTES ======= -->
+<div id="mBar">
+  <span class="t">NEX'SIRH · CONSOLE ADMIN</span>
+  <div class="grp">
+    <button data-v="login" class="on">Connexion</button>
+    <span class="gl">Pilotage</span>
+    <button data-v="dash">Vue d'ensemble</button>
+    <button data-v="entreprises">Entreprises</button>
+    <button data-v="entreprise">Fiche entreprise</button>
+    <button data-v="abo">Abonnements</button>
+    <button data-v="plans">Plans</button>
+    <span class="gl">Référentiels</span>
+    <button data-v="baremes">Barèmes légaux</button>
+    <span class="gl">Opérations</span>
+    <button data-v="support">Support</button>
+    <button data-v="annonces">Annonces</button>
+    <button data-v="monitor">Monitoring</button>
+    <button data-v="audit">Audit</button>
+    <button data-v="settings">Équipe & API</button>
+    <span class="gl">Modales</span>
+    <button onclick="om('mSuspendre')">Suspendre</button>
+    <button onclick="om('mImpersonate')">Support-accès</button>
+    <button onclick="om('mBareme')">Barème</button>
+    <button onclick="om('mPlanEdit')">Plan</button>
+    <button onclick="om('mAnnonce')">Annonce</button>
+    <button onclick="om('mTicket')">Ticket</button>
+    <button onclick="om('mRelance')">Relance</button>
+    <button onclick="om('mInviterAdmin')">Inviter</button>
+  </div>
+</div>
+
+<!-- ======= CONNEXION CONSOLE ======= -->
+<section class="full" id="v-login">
+  <div class="auth">
+    <div class="auth-side">
+      <div class="logo">Nex<b>'</b>SIRH <span style="font-weight:400;font-size:12px;opacity:.75">· CONSOLE</span></div>
+      <div>
+        <h1>Console<br>Administrateur.</h1>
+        <p>Pilotage de la plateforme : entreprises clientes, abonnements, barèmes légaux, support et supervision.</p>
+        <div style="margin-top:26px"><span class="bg" style="background:rgba(217,164,65,.18);color:var(--or)">Accès restreint — équipe Nex'SIRH uniquement</span></div>
+      </div>
+      <div class="pt">Toutes les actions de cette console sont journalisées.</div>
+    </div>
+    <div class="auth-main">
+      <div class="card auth-card">
+        <h2>Accès sécurisé 🛡</h2>
+        <p class="sub">Authentification à deux facteurs obligatoire.</p>
+        <div class="fld"><label>Email @nexsirh.gn</label><input type="email" value="admin@nexsirh.gn"></div>
+        <div class="fld"><label>Mot de passe</label><input type="password" value="••••••••••••"></div>
+        <div class="fld"><label>Code 2FA (application)</label><input class="mono" placeholder="000 000" style="letter-spacing:.3em;text-align:center"></div>
+        <button class="btn btn-p" style="width:100%;justify-content:center" onclick="go('dash');toast('Connexion console — session tracée dans l\'audit 🛡')">Entrer dans la console</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= SHELL CONSOLE ======= -->
+<div id="appShell" class="hidden">
+  <aside class="rail">
+    <div class="logo">Nex<b>'</b>SIRH <span style="font-size:10px;color:var(--or);letter-spacing:.1em">ADMIN</span></div>
+    <a href="#" data-v="dash" class="nv on"><span class="ico">◫</span> Vue d'ensemble</a>
+    <div class="sec">Clients</div>
+    <a href="#" data-v="entreprises" class="nv"><span class="ico">🏢</span> Entreprises</a>
+    <a href="#" data-v="abo" class="nv"><span class="ico">◈</span> Abonnements</a>
+    <a href="#" data-v="plans" class="nv"><span class="ico">▤</span> Plans &amp; tarifs</a>
+    <div class="sec">Référentiels légaux</div>
+    <a href="#" data-v="baremes" class="nv"><span class="ico">⚖</span> Barèmes (RTS, CNSS…)</a>
+    <div class="sec">Opérations</div>
+    <a href="#" data-v="support" class="nv"><span class="ico">🎧</span> Support</a>
+    <a href="#" data-v="annonces" class="nv"><span class="ico">📣</span> Annonces</a>
+    <a href="#" data-v="monitor" class="nv"><span class="ico">📈</span> Monitoring</a>
+    <a href="#" data-v="audit" class="nv"><span class="ico">🛡</span> Audit &amp; sécurité</a>
+    <a href="#" data-v="settings" class="nv"><span class="ico">⚙</span> Équipe &amp; API</a>
+    <div class="bot"><div class="usr"><span class="av">SA</span><div><b style="font-size:13px;color:#fff">Super Admin</b><small>admin@nexsirh.gn · 2FA ✓</small></div></div></div>
+  </aside>
+  <div>
+    <div class="topbar">
+      <div><h2 id="tbTitle">Vue d'ensemble</h2><span class="crumb" id="tbCrumb">Plateforme Nex'SIRH · Dimanche 12 juillet 2026</span></div>
+      <span class="sp"></span>
+      <div class="srch"><input placeholder="Entreprise, NIF, email, ticket…"></div>
+      <button class="bell" onclick="toast('3 notifications : 1 impayé, 1 incident résolu, 1 ticket urgent')">🔔<i></i></button>
+      <button class="btn btn-p btn-sm" onclick="om('mNouvelleEntreprise')">+ Entreprise</button>
+      <div class="pmenu" id="pmAdm">
+        <button class="pchip" onclick="tgP('pmAdm')"><span class="av">SA</span><span class="pinfo"><b>Super Admin</b><small>Console plateforme</small></span><span class="chev">▾</span></button>
+        <div class="pdrop">
+          <div class="ph"><span class="av" style="width:40px;height:40px;font-size:14px">SA</span><div><b>Super Admin</b><small>admin@nexsirh.gn</small><small><span class="bg bg-r" style="margin-top:3px">Super-admin · 2FA ✓</span></small></div></div>
+          <a onclick="tgP('pmAdm');om('mProfilAdm')"><span class="pi">👤</span> Mon profil &amp; sécurité</a>
+          <a onclick="tgP('pmAdm');om('mMdpAdm')"><span class="pi">🔑</span> Modifier le mot de passe</a>
+          <a onclick="tgP('pmAdm');go('audit');toast('Journal filtré sur vos actions 🛡')"><span class="pi">🛡</span> Journal de mes actions</a>
+          <div class="dv"></div>
+          <a onclick="tgP('pmAdm');go('settings')"><span class="pi">⚙</span> Équipe &amp; API</a>
+          <div class="dv"></div>
+          <a class="dgr" onclick="tgP('pmAdm');go('login');toast('Session console terminée — déconnexion tracée 🛡')"><span class="pi">⎋</span> Se déconnecter</a>
+          <div class="foot">Session : 09:41 · IP 102.176.44.10 · expire dans 4 h</div>
+        </div>
+      </div>
+    </div>
+    <div class="main">
+
+    <!-- ===== VUE : ENSEMBLE ===== -->
+    <div class="view on" id="v-dash">
+      <div class="kpis">
+        <div class="kpi gold"><div class="l">MRR — Revenu mensuel récurrent</div><div class="v mrr">31 450 000 <span style="font-size:13px;color:var(--gris)">GNF</span></div><div class="d"><b>+8,2 %</b> vs juin · ARR ≈ <span class="mono">377 M</span></div></div>
+        <div class="kpi"><div class="l">Entreprises actives</div><div class="v">38</div><div class="d"><b>+3</b> ce mois · 1 314 salariés gérés</div></div>
+        <div class="kpi"><div class="l">Essais en cours</div><div class="v">9</div><div class="d">taux de conversion 30 j : <b>52 %</b></div></div>
+        <div class="kpi"><div class="l">Churn / Impayés</div><div class="v">1,8 % <span style="font-size:14px">· 2</span></div><div class="d"><a class="link" href="#" onclick="go('abo');return false">2 impayés à relancer →</a></div></div>
+      </div>
+      <div class="grid2">
+        <div class="panel">
+          <div class="hd"><h3>MRR — 7 derniers mois (GNF)</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Export CSV des revenus généré')">⇩ CSV</button></div>
+          <div class="bd"><div class="bars">
+            <div class="bar"><i style="height:38%"></i><small>Jan</small></div><div class="bar"><i style="height:45%"></i><small>Fév</small></div>
+            <div class="bar"><i style="height:52%"></i><small>Mar</small></div><div class="bar"><i style="height:58%"></i><small>Avr</small></div>
+            <div class="bar"><i style="height:66%"></i><small>Mai</small></div><div class="bar"><i style="height:74%"></i><small>Juin</small></div>
+            <div class="bar hl"><i style="height:80%"></i><small>Juil</small></div>
+          </div></div>
+        </div>
+        <div class="panel">
+          <div class="hd"><h3>Santé de la plateforme</h3><span class="sp"></span><a class="link" href="#" onclick="go('monitor');return false">Monitoring →</a></div>
+          <div class="bd" style="padding-top:14px">
+            <div class="stat-line"><span><span class="sev ok"></span>Application (Vercel)</span><b class="mono">99,98 % · 210 ms</b></div>
+            <div class="stat-line"><span><span class="sev ok"></span>Base de données (Supabase)</span><b class="mono">99,99 % · 41 %</b></div>
+            <div class="stat-line"><span><span class="sev ok"></span>Génération PDF</span><b class="mono">1 842 docs / 7 j</b></div>
+            <div class="stat-line"><span><span class="sev warn"></span>Emails (Resend)</span><b class="mono">3 rebonds hier</b></div>
+            <div class="alert vt" style="margin-top:12px"><span class="ic">✓</span><div>Aucun incident en cours. Dernier : 08/07 (lenteur PDF, résolu en 22 min).</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:18px">
+        <div class="panel">
+          <div class="hd"><h3>Dernières inscriptions</h3><span class="sp"></span><a class="link" href="#" onclick="go('entreprises');return false">Toutes →</a></div>
+          <table>
+            <tr><th>Entreprise</th><th>Plan</th><th class="num">Salariés</th><th>Inscrite le</th><th></th></tr>
+            <tr><td><b>SOGUIPAH SARL</b><br><small style="color:var(--gris)">Agro-industrie · Conakry</small></td><td><span class="bg bg-o">Essai — j.24/30</span></td><td class="gnf mono">31</td><td>18/06</td><td><button class="btn btn-o btn-sm" onclick="go('entreprise')">Ouvrir</button></td></tr>
+            <tr><td><b>TRANSCO GUINÉE</b><br><small style="color:var(--gris)">Transport · Kindia</small></td><td><span class="bg bg-o">Essai — j.9/30</span></td><td class="gnf mono">14</td><td>03/07</td><td><button class="btn btn-o btn-sm" onclick="go('entreprise')">Ouvrir</button></td></tr>
+            <tr><td><b>PHARMA PLUS SARLU</b><br><small style="color:var(--gris)">Santé · Conakry</small></td><td><span class="bg bg-v">Starter</span></td><td class="gnf mono">8</td><td>28/06</td><td><button class="btn btn-o btn-sm" onclick="go('entreprise')">Ouvrir</button></td></tr>
+          </table>
+        </div>
+        <div class="panel">
+          <div class="hd"><h3>À traiter</h3><span class="sp"></span><span class="bg bg-r">5</span></div>
+          <div class="bd" style="padding-top:14px">
+            <div class="alert rg"><span class="ic">💳</span><div><b>Impayé — INJELEC-GUINÉE</b> (Business, 3e échec). <a class="link" href="#" onclick="om('mRelance');return false">Relancer →</a></div></div>
+            <div class="alert rg"><span class="ic">🎧</span><div><b>Ticket urgent #248 — GARAYA HOLDING :</b> « écart RTS sur bulletin ». <a class="link" href="#" onclick="om('mTicket');return false">Ouvrir →</a></div></div>
+            <div class="alert or"><span class="ic">⚖</span><div><b>Veille légale :</b> projet de révision du barème RTS annoncé par la DNI. <a class="link" href="#" onclick="go('baremes');return false">Préparer une version →</a></div></div>
+            <div class="alert or"><span class="ic">⏳</span><div><b>3 essais expirent sous 5 jours</b> sans plan choisi. <a class="link" href="#" onclick="om('mAnnonce');return false">Envoyer un rappel →</a></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : ENTREPRISES ===== -->
+    <div class="view" id="v-entreprises">
+      <div class="tools">
+        <div class="srch" style="width:280px"><input placeholder="Nom, NIF, email admin…"></div>
+        <button class="chip on">Toutes · 49</button><button class="chip">Actives · 38</button><button class="chip">Essais · 9</button><button class="chip">Impayées · 2</button><button class="chip">Suspendues · 0</button>
+        <span class="sp"></span>
+        <button class="btn btn-o btn-sm" onclick="toast('Export Excel des entreprises généré')">⇩ Exporter</button>
+        <button class="btn btn-p btn-sm" onclick="om('mNouvelleEntreprise')">+ Créer une entreprise</button>
+      </div>
+      <div class="panel">
+        <table>
+          <tr><th>Entreprise</th><th>Plan</th><th class="num">Salariés</th><th class="num">Utilisateurs</th><th class="num">MRR (GNF)</th><th>Dernière paie</th><th>Statut</th><th></th></tr>
+          <tr><td><b>GARAYA HOLDING</b><br><small style="color:var(--gris)">NIF 375106275 · Ratoma</small></td><td><span class="bg bg-v">Business</span></td><td class="gnf mono">24</td><td class="gnf mono">6</td><td class="gnf">950 000</td><td>Juin ✓ clôturée</td><td><span class="bg bg-v">Active</span></td><td><button class="btn btn-o btn-sm" onclick="go('entreprise')">Ouvrir</button></td></tr>
+          <tr><td><b>INJELEC-GUINÉE</b><br><small style="color:var(--gris)">Électricité · Kaloum</small></td><td><span class="bg bg-v">Business</span></td><td class="gnf mono">42</td><td class="gnf mono">9</td><td class="gnf">950 000</td><td>Juin ✓ clôturée</td><td><span class="bg bg-r">Impayée — j.12</span></td><td><button class="btn btn-o btn-sm" onclick="om('mRelance')">Relancer</button> <button class="btn btn-o btn-sm" onclick="go('entreprise')">Ouvrir</button></td></tr>
+          <tr><td><b>ENGUITRACI SARLU</b><br><small style="color:var(--gris)">Transport · Kaloum · NIF 375106275</small></td><td><span class="bg bg-v">Starter</span></td><td class="gnf mono">17</td><td class="gnf mono">2</td><td class="gnf">450 000</td><td>Juin ✓ clôturée</td><td><span class="bg bg-v">Active</span></td><td><button class="btn btn-o btn-sm" onclick="go('entreprise')">Ouvrir</button></td></tr>
+          <tr><td><b>CABINET FIDUCIAIRE CKY</b><br><small style="color:var(--gris)">Expertise comptable · 6 dossiers</small></td><td><span class="bg bg-b">Cabinet</span></td><td class="gnf mono">128</td><td class="gnf mono">4</td><td class="gnf">2 400 000</td><td>Juin ✓ (6/6)</td><td><span class="bg bg-v">Active</span></td><td><button class="btn btn-o btn-sm" onclick="go('entreprise')">Ouvrir</button></td></tr>
+          <tr><td><b>SOGUIPAH SARL</b><br><small style="color:var(--gris)">Agro-industrie · Conakry</small></td><td><span class="bg bg-o">Essai j.24/30</span></td><td class="gnf mono">31</td><td class="gnf mono">3</td><td class="gnf">—</td><td>Juin (brouillon)</td><td><span class="bg bg-o">Essai</span></td><td><button class="btn btn-o btn-sm" onclick="go('entreprise')">Ouvrir</button></td></tr>
+          <tr><td><b>PHARMA PLUS SARLU</b><br><small style="color:var(--gris)">Santé · Dixinn</small></td><td><span class="bg bg-v">Starter</span></td><td class="gnf mono">8</td><td class="gnf mono">2</td><td class="gnf">450 000</td><td>Juin ✓ clôturée</td><td><span class="bg bg-v">Active</span></td><td><button class="btn btn-o btn-sm" onclick="go('entreprise')">Ouvrir</button></td></tr>
+        </table>
+        <div class="pgn"><span>49 entreprises · 1 314 salariés gérés au total</span><div class="pgs"><button class="on">1</button><button>2</button><button>3</button><button>›</button></div></div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : FICHE ENTREPRISE ===== -->
+    <div class="view" id="v-entreprise">
+      <div style="display:flex;gap:18px;align-items:center;margin-bottom:20px">
+        <span class="av" style="width:56px;height:56px;font-size:19px">GH</span>
+        <div style="flex:1">
+          <h2 class="disp" style="font-size:22px;font-weight:800">GARAYA HOLDING <span class="bg bg-v" style="vertical-align:3px;margin-left:6px">Active</span> <span class="bg bg-v" style="vertical-align:3px">Business</span></h2>
+          <span class="crumb">NIF <b class="mono">375106275</b> · Kipé, Ratoma · Cliente depuis le 24/06/2026 · Admin : m.tolno@garaya.gn</span>
+        </div>
+        <button class="btn btn-o" onclick="om('mImpersonate')">🎧 Accès support</button>
+        <button class="btn btn-o" onclick="toast('Export RGPD complet des données de l\'entreprise lancé (ZIP chiffré)')">⇩ Exporter les données</button>
+        <button class="btn btn-d" onclick="om('mSuspendre')">⏸ Suspendre</button>
+      </div>
+      <div class="tabs">
+        <button class="on" onclick="tab(this,'et1','etab')">Activité</button>
+        <button onclick="tab(this,'et2','etab')">Abonnement &amp; factures</button>
+        <button onclick="tab(this,'et3','etab')">Utilisateurs</button>
+        <button onclick="tab(this,'et4','etab')">Journal</button>
+      </div>
+      <div class="etab" id="et1">
+        <div class="kpis">
+          <div class="kpi"><div class="l">Salariés gérés</div><div class="v">24 <span style="font-size:13px;color:var(--gris)">/ 50</span></div><div class="d"><div class="prog" style="margin-top:6px"><i style="width:48%"></i></div></div></div>
+          <div class="kpi"><div class="l">Paies clôturées</div><div class="v">12</div><div class="d">dernière : juin 2026, le 30/06</div></div>
+          <div class="kpi"><div class="l">Documents générés</div><div class="v">318</div><div class="d">dont 288 bulletins PDF</div></div>
+          <div class="kpi"><div class="l">Dernière connexion</div><div class="v" style="font-size:17px;padding-top:6px">Aujourd'hui 09:12</div><div class="d">M. Tolno (RH)</div></div>
+        </div>
+        <div class="grid2">
+          <div class="panel"><div class="hd"><h3>Utilisation des modules — 30 jours</h3></div><div class="bd">
+            <div class="hbar"><span class="nm">Paie</span><div class="tr"><i style="width:92%"></i></div><b class="mono">412 actions</b></div>
+            <div class="hbar"><span class="nm">Employés</span><div class="tr"><i style="width:64%"></i></div><b class="mono">286</b></div>
+            <div class="hbar"><span class="nm">Congés</span><div class="tr"><i style="width:48%"></i></div><b class="mono">214</b></div>
+            <div class="hbar"><span class="nm">Documents</span><div class="tr"><i style="width:37%"></i></div><b class="mono">166</b></div>
+            <div class="hbar"><span class="nm">Portail employé</span><div class="tr"><i class="o" style="width:71%"></i></div><b class="mono">318 visites</b></div>
+          </div></div>
+          <div class="panel"><div class="hd"><h3>Notes internes</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Note interne enregistrée')">+ Note</button></div><div class="bd">
+            <div class="alert vt"><span class="ic">📝</span><div><b>09/07 — Support :</b> ticket #248 (écart RTS) : venait d'une prime saisie hors barème. Résolu, client satisfait.</div></div>
+            <div class="alert or"><span class="ic">💡</span><div><b>02/07 — Commercial :</b> intéressés par le futur paiement Orange Money. À recontacter au lancement.</div></div>
+          </div></div>
+        </div>
+      </div>
+      <div class="etab hidden" id="et2">
+        <div class="grid2">
+          <div class="panel"><div class="hd"><h3>Abonnement</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="om('mPlanEdit')">Changer de plan</button></div><div class="bd">
+            <div class="stat-line"><span>Plan</span><b>Business — 950 000 GNF / mois</b></div>
+            <div class="stat-line"><span>Statut</span><b><span class="bg bg-v">Actif</span></b></div>
+            <div class="stat-line"><span>Prochain prélèvement</span><b>24/08/2026 · carte •••• 4242</b></div>
+            <div class="stat-line"><span>Client depuis</span><b>24/06/2026 (essai converti j.18)</b></div>
+            <div class="stat-line"><span>Revenu cumulé</span><b class="gnf">1 900 000 GNF</b></div>
+            <div style="display:flex;gap:8px;margin-top:14px">
+              <button class="btn btn-o btn-sm" onclick="toast('Remise appliquée : -10 % pendant 3 mois')">% Appliquer une remise</button>
+              <button class="btn btn-o btn-sm" onclick="toast('Abonnement mis en pause jusqu\'au 24/09')">⏸ Pause facturation</button>
+            </div>
+          </div></div>
+          <div class="panel"><div class="hd"><h3>Factures</h3></div>
+            <table>
+              <tr><th>N°</th><th>Période</th><th class="num">Montant</th><th>Statut</th><th></th></tr>
+              <tr><td class="mono">F-2026-0812</td><td>24/07 → 24/08</td><td class="gnf">950 000</td><td><span class="bg bg-v">Payée</span></td><td><button class="btn btn-g btn-sm" onclick="toast('Facture PDF téléchargée')">⇩</button></td></tr>
+              <tr><td class="mono">F-2026-0704</td><td>24/06 → 24/07</td><td class="gnf">950 000</td><td><span class="bg bg-v">Payée</span></td><td><button class="btn btn-g btn-sm" onclick="toast('Facture PDF téléchargée')">⇩</button></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="etab hidden" id="et3">
+        <div class="panel"><div class="hd"><h3>Utilisateurs de l'entreprise</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Email de réinitialisation envoyé à l\'admin')">🔑 Réinitialiser l\'admin</button></div>
+          <table>
+            <tr><th>Utilisateur</th><th>Rôle</th><th>Dernière connexion</th><th>Statut</th><th></th></tr>
+            <tr><td><b>Michel TOLNO</b> <small style="color:var(--gris)">m.tolno@garaya.gn</small></td><td><span class="bg bg-v">RH (admin)</span></td><td>Aujourd'hui 09:12</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm" onclick="toast('Session utilisateur révoquée')">Révoquer session</button></td></tr>
+            <tr><td><b>Ibrahima SOW</b> <small style="color:var(--gris)">dg@garaya.gn</small></td><td><span class="bg bg-b">Direction</span></td><td>Hier 18:40</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm" onclick="toast('Session utilisateur révoquée')">Révoquer session</button></td></tr>
+            <tr><td><b>18 employés (portail)</b></td><td><span class="bg bg-g">Employé</span></td><td>—</td><td><span class="bg bg-v">Actifs</span></td><td></td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="etab hidden" id="et4">
+        <div class="panel"><div class="hd"><h3>Journal de l'entreprise</h3></div><div class="bd"><div class="timeline">
+          <div class="tl"><small>10/07 09:14 · m.tolno</small>Génération de la paie de juillet (24 bulletins, brouillon).</div>
+          <div class="tl gold"><small>09/07 15:02 · support@nexsirh</small><b>Accès support</b> (45 min, autorisé par le client) — ticket #248.</div>
+          <div class="tl"><small>30/06 17:40 · m.tolno</small>Clôture de la paie de juin — 24 bulletins archivés.</div>
+          <div class="tl"><small>24/06 10:05 · stripe</small>Conversion essai → <b>Business</b>. Première facture payée.</div>
+        </div></div></div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : ABONNEMENTS ===== -->
+    <div class="view" id="v-abo">
+      <div class="kpis">
+        <div class="kpi gold"><div class="l">MRR</div><div class="v mrr" style="font-size:24px">31 450 000</div><div class="d">GNF · 40 abonnements payants</div></div>
+        <div class="kpi"><div class="l">Répartition</div><div class="d" style="margin-top:10px">
+          <div class="hbar"><span class="nm">Business ×24</span><div class="tr"><i style="width:73%"></i></div><b class="gnf">22,8 M</b></div>
+          <div class="hbar"><span class="nm">Starter ×14</span><div class="tr"><i style="width:20%"></i></div><b class="gnf">6,3 M</b></div>
+          <div class="hbar"><span class="nm">Cabinet ×2</span><div class="tr"><i class="o" style="width:15%"></i></div><b class="gnf">4,8 M</b></div>
+        </div></div>
+        <div class="kpi"><div class="l">Encaissé en juillet</div><div class="v">28 730 000</div><div class="d">2 paiements en échec</div></div>
+        <div class="kpi"><div class="l">Conversion essais (90 j)</div><div class="v">52 %</div><div class="d">11 conversions / 21 essais</div></div>
+      </div>
+      <div class="panel">
+        <div class="hd"><h3>Paiements &amp; impayés</h3><span class="sp"></span><button class="chip on">Tous</button><button class="chip">Impayés · 2</button><button class="chip">À échéance 7 j · 6</button></div>
+        <table>
+          <tr><th>Entreprise</th><th>Plan</th><th class="num">Montant</th><th>Échéance</th><th>Moyen</th><th>Statut</th><th></th></tr>
+          <tr><td><b>INJELEC-GUINÉE</b></td><td>Business</td><td class="gnf">950 000</td><td>30/06 <b style="color:var(--rouge)">(j.+12)</b></td><td>Carte •••• 8810</td><td><span class="bg bg-r">Échec ×3</span></td><td><button class="btn btn-p btn-sm" onclick="om('mRelance')">Relancer</button></td></tr>
+          <tr><td><b>BTP KANKAN SARL</b></td><td>Starter</td><td class="gnf">450 000</td><td>05/07 <b style="color:var(--rouge)">(j.+7)</b></td><td>Virement manuel</td><td><span class="bg bg-r">En attente</span></td><td><button class="btn btn-p btn-sm" onclick="om('mRelance')">Relancer</button> <button class="btn btn-o btn-sm" onclick="toast('Paiement par virement marqué comme reçu ✓')">✓ Reçu</button></td></tr>
+          <tr><td><b>GARAYA HOLDING</b></td><td>Business</td><td class="gnf">950 000</td><td>24/08</td><td>Carte •••• 4242</td><td><span class="bg bg-v">À jour</span></td><td><button class="btn btn-g btn-sm" onclick="go('entreprise')">Fiche</button></td></tr>
+          <tr><td><b>CABINET FIDUCIAIRE CKY</b></td><td>Cabinet</td><td class="gnf">2 400 000</td><td>01/08</td><td>Virement</td><td><span class="bg bg-v">À jour</span></td><td><button class="btn btn-g btn-sm" onclick="go('entreprise')">Fiche</button></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== VUE : PLANS ===== -->
+    <div class="view" id="v-plans">
+      <div class="tools"><span class="note">Les modifications s'appliquent aux <b>nouveaux abonnements</b> ; les clients existants conservent leur tarif (grandfathering).</span><span class="sp"></span><button class="btn btn-p btn-sm" onclick="om('mPlanEdit')">+ Nouveau plan</button></div>
+      <div class="plans">
+        <div class="plan"><h4>Starter</h4><div class="px">450 000 <small>GNF / mois</small></div>
+          <p class="note">≤ 15 salariés · 14 clients actifs</p>
+          <ul><li>Personnel, paie, congés</li><li>Documents PDF</li><li>3 utilisateurs</li></ul>
+          <div style="display:flex;gap:8px"><button class="btn btn-o btn-sm" style="flex:1" onclick="om('mPlanEdit')">✎ Modifier</button><button class="btn btn-g btn-sm" onclick="toast('Plan Starter archivé — plus proposé aux nouveaux clients')">Archiver</button></div>
+        </div>
+        <div class="plan hl"><span class="tag">Populaire</span><h4>Business</h4><div class="px">950 000 <small>GNF / mois</small></div>
+          <p class="note">≤ 50 salariés · 24 clients actifs</p>
+          <ul><li>Tout Starter +</li><li>Temps &amp; heures sup.</li><li>Portail employé</li><li>Utilisateurs illimités</li></ul>
+          <div style="display:flex;gap:8px"><button class="btn btn-o btn-sm" style="flex:1" onclick="om('mPlanEdit')">✎ Modifier</button><button class="btn btn-g btn-sm" onclick="toast('Plan dupliqué en brouillon « Business annuel -15 % »')">⧉ Dupliquer</button></div>
+        </div>
+        <div class="plan"><h4>Cabinet</h4><div class="px">Sur devis</div>
+          <p class="note">Multi-dossiers · 2 clients actifs</p>
+          <ul><li>Plusieurs entreprises</li><li>Facturation consolidée</li><li>Support dédié</li></ul>
+          <div style="display:flex;gap:8px"><button class="btn btn-o btn-sm" style="flex:1" onclick="om('mPlanEdit')">✎ Modifier</button></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:20px"><div class="hd"><h3>Codes promotionnels</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Code promo LANCEMENT26 créé : -20 % pendant 3 mois')">+ Créer un code</button></div>
+        <table>
+          <tr><th>Code</th><th>Remise</th><th>Utilisations</th><th>Expire</th><th>Statut</th><th></th></tr>
+          <tr><td class="mono"><b>LANCEMENT26</b></td><td>-20 % · 3 mois</td><td class="mono">17 / 50</td><td>31/12/2026</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm" onclick="toast('Code désactivé')">Désactiver</button></td></tr>
+          <tr><td class="mono"><b>CABINET10</b></td><td>-10 % · 12 mois</td><td class="mono">2 / 10</td><td>—</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm" onclick="toast('Code désactivé')">Désactiver</button></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== VUE : BARÈMES LÉGAUX ===== -->
+    <div class="view" id="v-baremes">
+      <div class="alert or" style="max-width:900px"><span class="ic">⚖</span><div><b>Référentiels partagés par toutes les entreprises.</b> Chaque modification crée une <b>nouvelle version datée</b> : les paies déjà clôturées restent calculées avec l'ancienne version. Toute publication est journalisée et notifiée aux clients.</div></div>
+      <div class="grid2" style="margin-top:16px">
+        <div class="panel">
+          <div class="hd"><h3>Barème RTS — versions</h3><span class="sp"></span><button class="btn btn-p btn-sm" onclick="om('mBareme')">+ Nouvelle version</button></div>
+          <table>
+            <tr><th>Version</th><th>En vigueur du</th><th>Tranches</th><th>Statut</th><th></th></tr>
+            <tr><td class="mono">v2026.1</td><td>01/01/2026</td><td>5 / 8 / 10 / 15 %</td><td><span class="bg bg-v">Active</span></td><td><button class="btn btn-g btn-sm" onclick="om('mBareme')">Voir</button></td></tr>
+            <tr><td class="mono">v2025.1</td><td>01/01/2025 → 31/12/2025</td><td>5 / 8 / 10 / 15 %</td><td><span class="bg bg-g">Archivée</span></td><td><button class="btn btn-g btn-sm" onclick="om('mBareme')">Voir</button></td></tr>
+          </table>
+          <div class="bd"><table>
+            <tr><th>Tranche (net imposable)</th><th class="num">Taux v2026.1</th></tr>
+            <tr><td>0 → 2 000 000 GNF</td><td class="gnf"><b>5 %</b></td></tr>
+            <tr><td>2 000 000 → 5 000 000</td><td class="gnf"><b>8 %</b></td></tr>
+            <tr><td>5 000 000 → 10 000 000</td><td class="gnf"><b>10 %</b></td></tr>
+            <tr><td>Au-delà de 10 000 000</td><td class="gnf"><b>15 %</b></td></tr>
+          </table></div>
+        </div>
+        <div>
+          <div class="panel" style="margin-bottom:18px">
+            <div class="hd"><h3>Cotisations sociales</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="om('mBareme')">✎ Nouvelle version</button></div>
+            <table>
+              <tr><th>Cotisation</th><th class="num">Sal.</th><th class="num">Pat.</th><th>Base / plafond</th></tr>
+              <tr><td><b>CNSS</b></td><td class="gnf">5 %</td><td class="gnf">18 %</td><td>plafond <span class="mono">2 500 000</span></td></tr>
+              <tr><td><b>Versement Forfaitaire</b></td><td class="gnf">—</td><td class="gnf">6 %</td><td>brut − indemn. exonérées</td></tr>
+              <tr><td><b>CFPA</b></td><td class="gnf">—</td><td class="gnf">1,5 %</td><td>total brut</td></tr>
+            </table>
+          </div>
+          <div class="panel">
+            <div class="hd"><h3>Jours fériés — Guinée 2026</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Jour férié ajouté et poussé vers les 49 entreprises 📅')">+ Ajouter</button></div>
+            <div class="bd" style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="bg bg-g">01/01 Nouvel An</span><span class="bg bg-b">20/03 Aïd el-Fitr</span><span class="bg bg-g">01/05 Fête du Travail</span>
+              <span class="bg bg-b">27/05 Tabaski</span><span class="bg bg-g">27/08 Martyrs</span><span class="bg bg-g">02/10 Indépendance</span><span class="bg bg-g">25/12 Noël</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : SUPPORT ===== -->
+    <div class="view" id="v-support">
+      <div class="tools">
+        <button class="chip on">Ouverts · 7</button><button class="chip">Urgents · 1</button><button class="chip">En attente client · 3</button><button class="chip">Résolus (30 j) · 41</button>
+        <span class="sp"></span>
+        <span class="note">Temps de 1re réponse (30 j) : <b class="mono">1 h 42</b> · Satisfaction : <b class="mono">4,7/5</b></span>
+      </div>
+      <div class="panel">
+        <table>
+          <tr><th>#</th><th>Sujet</th><th>Entreprise</th><th>Priorité</th><th>Assigné à</th><th>Ouvert</th><th>Statut</th><th></th></tr>
+          <tr><td class="mono">248</td><td><b>Écart RTS sur bulletin de M. Plegnemou</b></td><td>GARAYA HOLDING</td><td><span class="bg bg-r">Urgent</span></td><td>Aïssatou D.</td><td>il y a 3 h</td><td><span class="bg bg-o">En cours</span></td><td><button class="btn btn-p btn-sm" onclick="om('mTicket')">Ouvrir</button></td></tr>
+          <tr><td class="mono">247</td><td>Import Excel : colonnes non reconnues</td><td>SOGUIPAH SARL</td><td><span class="bg bg-o">Normal</span></td><td>Mamadou K.</td><td>hier</td><td><span class="bg bg-b">Attente client</span></td><td><button class="btn btn-o btn-sm" onclick="om('mTicket')">Ouvrir</button></td></tr>
+          <tr><td class="mono">246</td><td>Demande : paiement Orange Money</td><td>INJELEC-GUINÉE</td><td><span class="bg bg-g">Basse</span></td><td>—</td><td>08/07</td><td><span class="bg bg-o">Ouvert</span></td><td><button class="btn btn-o btn-sm" onclick="om('mTicket')">Ouvrir</button></td></tr>
+          <tr><td class="mono">245</td><td>Réinitialisation 2FA de l'admin</td><td>PHARMA PLUS</td><td><span class="bg bg-o">Normal</span></td><td>Aïssatou D.</td><td>07/07</td><td><span class="bg bg-v">Résolu</span></td><td><button class="btn btn-g btn-sm" onclick="om('mTicket')">Voir</button></td></tr>
+        </table>
+      </div>
+      <div class="grid2" style="margin-top:18px">
+        <div class="panel"><div class="hd"><h3>Sujets récurrents (30 j)</h3></div><div class="bd">
+          <div class="hbar"><span class="nm">Import de données</span><div class="tr"><i style="width:80%"></i></div><b class="mono">12 tickets</b></div>
+          <div class="hbar"><span class="nm">Questions paie/RTS</span><div class="tr"><i style="width:60%"></i></div><b class="mono">9</b></div>
+          <div class="hbar"><span class="nm">Facturation</span><div class="tr"><i style="width:33%"></i></div><b class="mono">5</b></div>
+          <div class="hbar"><span class="nm">Accès / 2FA</span><div class="tr"><i style="width:27%"></i></div><b class="mono">4</b></div>
+        </div></div>
+        <div class="panel"><div class="hd"><h3>Base de connaissances</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Éditeur d\'article ouvert')">+ Article</button></div>
+          <table>
+            <tr><td>📖 Importer vos salariés depuis Excel</td><td class="mono">1 204 vues</td><td><button class="btn btn-g btn-sm" onclick="toast('Article ouvert dans l\'éditeur')">✎</button></td></tr>
+            <tr><td>📖 Comprendre le calcul de la RTS</td><td class="mono">861 vues</td><td><button class="btn btn-g btn-sm" onclick="toast('Article ouvert dans l\'éditeur')">✎</button></td></tr>
+            <tr><td>📖 Clôturer une paie et régulariser</td><td class="mono">644 vues</td><td><button class="btn btn-g btn-sm" onclick="toast('Article ouvert dans l\'éditeur')">✎</button></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : ANNONCES ===== -->
+    <div class="view" id="v-annonces">
+      <div class="tools"><span class="note">Bannières in-app et emails envoyés aux entreprises clientes.</span><span class="sp"></span><button class="btn btn-p" onclick="om('mAnnonce')">+ Nouvelle annonce</button></div>
+      <div class="panel">
+        <table>
+          <tr><th>Annonce</th><th>Canal</th><th>Cible</th><th>Envoyée</th><th>Perf.</th><th></th></tr>
+          <tr><td><b>🎉 Nouveau : portail employé disponible</b></td><td>Email + bannière</td><td>Tous les clients (49)</td><td>01/07</td><td class="mono">72 % ouverture</td><td><button class="btn btn-g btn-sm" onclick="om('mAnnonce')">Dupliquer</button></td></tr>
+          <tr><td><b>⏳ Votre essai expire dans 5 jours</b></td><td>Email auto</td><td>Essais j.25+</td><td>automatique</td><td class="mono">41 % → conversion</td><td><button class="btn btn-g btn-sm" onclick="om('mAnnonce')">✎ Modifier</button></td></tr>
+          <tr><td><b>🔧 Maintenance planifiée dim. 19/07, 22 h – 23 h</b></td><td>Bannière in-app</td><td>Tous</td><td>programmée 17/07</td><td>—</td><td><button class="btn btn-g btn-sm" onclick="toast('Annonce programmée annulée')">Annuler</button></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== VUE : MONITORING ===== -->
+    <div class="view" id="v-monitor">
+      <div class="kpis">
+        <div class="kpi"><div class="l">Disponibilité 30 j</div><div class="v">99,98 %</div><div class="d">1 incident mineur (22 min)</div></div>
+        <div class="kpi"><div class="l">Latence médiane API</div><div class="v">210 ms</div><div class="d">p95 : <span class="mono">640 ms</span></div></div>
+        <div class="kpi"><div class="l">Base de données</div><div class="v">41 %</div><div class="d">3,2 Go / 8 Go · sauvegarde 04:00 ✓</div></div>
+        <div class="kpi"><div class="l">Erreurs 24 h</div><div class="v">7</div><div class="d">0 critique · 7 mineures</div></div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><div class="hd"><h3>Tâches planifiées (cron)</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Toutes les tâches relancées manuellement ↻')">↻ Tout relancer</button></div>
+          <table>
+            <tr><th>Tâche</th><th>Fréquence</th><th>Dernière exécution</th><th>Statut</th><th></th></tr>
+            <tr><td>Alertes RH (CDD, pièces, essais)</td><td>Quotidien 06:00</td><td>Auj. 06:00 · 1,2 s</td><td><span class="sev ok"></span>OK</td><td><button class="btn btn-g btn-sm" onclick="toast('Tâche exécutée ✓ (1,1 s)')">▶</button></td></tr>
+            <tr><td>Emails essais expirants</td><td>Quotidien 08:00</td><td>Auj. 08:00 · 0,8 s</td><td><span class="sev ok"></span>OK</td><td><button class="btn btn-g btn-sm" onclick="toast('Tâche exécutée ✓')">▶</button></td></tr>
+            <tr><td>Relances impayés (Stripe)</td><td>Quotidien 09:00</td><td>Auj. 09:00 · 2,1 s</td><td><span class="sev warn"></span>2 échecs client</td><td><button class="btn btn-g btn-sm" onclick="toast('Tâche exécutée — 2 impayés toujours en échec')">▶</button></td></tr>
+            <tr><td>Sauvegarde base + Storage</td><td>Quotidien 04:00</td><td>Auj. 04:00 · 3 min</td><td><span class="sev ok"></span>OK</td><td><button class="btn btn-g btn-sm" onclick="toast('Sauvegarde manuelle lancée 💾')">▶</button></td></tr>
+          </table>
+        </div>
+        <div class="panel"><div class="hd"><h3>Journal des incidents</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Incident déclaré — page de statut mise à jour')">+ Déclarer</button></div><div class="bd"><div class="timeline">
+          <div class="tl"><small>08/07 14:10 → 14:32 · mineur</small><b>Lenteur génération PDF</b> — pic de charge (fin de mois). Résolu : file d'attente augmentée.</div>
+          <div class="tl"><small>21/06 03:00 → 03:05 · maintenance</small><b>Migration base v1.4</b> — ajout des index paie. Sans interruption.</div>
+          <div class="tl"><small>12/06 · info</small><b>Mise en production initiale</b> 🎉</div>
+        </div></div></div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : AUDIT ===== -->
+    <div class="view" id="v-audit">
+      <div class="tools">
+        <div class="srch" style="width:260px"><input placeholder="Filtrer par email, entreprise, action…"></div>
+        <select style="width:180px"><option>Toutes les actions</option><option>Connexions console</option><option>Accès support</option><option>Barèmes</option><option>Suspensions</option></select>
+        <span class="sp"></span>
+        <button class="btn btn-o btn-sm" onclick="toast('Export CSV du journal d\'audit généré (signé)')">⇩ Export signé</button>
+      </div>
+      <div class="panel">
+        <table>
+          <tr><th>Date · heure</th><th>Acteur</th><th>Action</th><th>Cible</th><th>IP</th></tr>
+          <tr><td class="mono">12/07 09:41</td><td>admin@nexsirh.gn</td><td><span class="bg bg-b">Connexion console (2FA ✓)</span></td><td>—</td><td class="mono">102.176.44.10</td></tr>
+          <tr><td class="mono">09/07 15:02</td><td>support@nexsirh.gn</td><td><span class="bg bg-o">Accès support (45 min)</span></td><td>GARAYA HOLDING · autorisé par m.tolno</td><td class="mono">102.176.44.12</td></tr>
+          <tr><td class="mono">05/07 11:20</td><td>admin@nexsirh.gn</td><td><span class="bg bg-v">Code promo créé</span></td><td>LANCEMENT26 (-20 %, 3 mois)</td><td class="mono">102.176.44.10</td></tr>
+          <tr><td class="mono">01/07 08:00</td><td>système</td><td><span class="bg bg-g">Annonce diffusée</span></td><td>« Portail employé » → 49 entreprises</td><td>—</td></tr>
+          <tr><td class="mono">28/06 16:44</td><td>inconnu</td><td><span class="bg bg-r">Échec connexion ×5 → IP bloquée 24 h</span></td><td>console admin</td><td class="mono">45.140.17.88</td></tr>
+          <tr><td class="mono">21/06 03:00</td><td>admin@nexsirh.gn</td><td><span class="bg bg-o">Migration base appliquée</span></td><td>v1.4 — index paie</td><td class="mono">102.176.44.10</td></tr>
+        </table>
+        <div class="pgn"><span>2 481 événements · conservation 5 ans · journal inviolable (append-only)</span><div class="pgs"><button class="on">1</button><button>2</button><button>›</button></div></div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : ÉQUIPE & API ===== -->
+    <div class="view" id="v-settings">
+      <div class="grid2">
+        <div class="panel"><div class="hd"><h3>Équipe Nex'SIRH</h3><span class="sp"></span><button class="btn btn-p btn-sm" onclick="om('mInviterAdmin')">+ Inviter</button></div>
+          <table>
+            <tr><th>Membre</th><th>Rôle console</th><th>2FA</th><th></th></tr>
+            <tr><td><b>Super Admin</b> <small style="color:var(--gris)">admin@nexsirh.gn</small></td><td><span class="bg bg-r">Super-admin</span></td><td>✓</td><td></td></tr>
+            <tr><td><b>Aïssatou DIALLO</b> <small style="color:var(--gris)">support@nexsirh.gn</small></td><td><span class="bg bg-o">Support</span></td><td>✓</td><td><button class="btn btn-g btn-sm" onclick="toast('Rôle modifié')">✎</button></td></tr>
+            <tr><td><b>Mamadou KEITA</b> <small style="color:var(--gris)">tech@nexsirh.gn</small></td><td><span class="bg bg-b">Technique</span></td><td>✓</td><td><button class="btn btn-g btn-sm" onclick="toast('Rôle modifié')">✎</button></td></tr>
+          </table>
+          <div class="bd"><div class="alert vt"><span class="ic">🛡</span><div><b>Droits :</b> Support = lecture + accès support avec consentement client. Technique = monitoring + migrations. Seul le Super-admin peut suspendre une entreprise ou publier un barème.</div></div></div>
+        </div>
+        <div>
+          <div class="panel" style="margin-bottom:18px"><div class="hd"><h3>Intégrations &amp; clés</h3></div>
+            <table>
+              <tr><td><b>Stripe</b> <small style="color:var(--gris)">paiements</small></td><td><span class="sev ok"></span>Connecté</td><td><button class="btn btn-g btn-sm" onclick="toast('Clé Stripe régénérée — ancienne clé révoquée 🔑')">🔑 Régénérer</button></td></tr>
+              <tr><td><b>Resend</b> <small style="color:var(--gris)">emails</small></td><td><span class="sev ok"></span>Connecté</td><td><button class="btn btn-g btn-sm" onclick="toast('Clé Resend régénérée 🔑')">🔑 Régénérer</button></td></tr>
+              <tr><td><b>Webhook facturation</b></td><td class="mono">…/api/webhooks/stripe</td><td><button class="btn btn-g btn-sm" onclick="toast('Webhook testé : 200 OK ✓')">Tester</button></td></tr>
+            </table>
+          </div>
+          <div class="panel"><div class="hd"><h3>Zone sensible</h3></div><div class="bd">
+            <div class="stat-line"><span>Mode maintenance (bannière + lecture seule)</span><button class="btn btn-o btn-sm" onclick="toast('Mode maintenance ACTIVÉ pour toutes les entreprises ⚠ — cliquer à nouveau pour désactiver')">Activer</button></div>
+            <div class="stat-line"><span>Restauration d'une sauvegarde</span><button class="btn btn-o btn-sm" onclick="toast('Assistant de restauration ouvert — nécessite une double validation')">Ouvrir l\'assistant</button></div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+
+    </div><!-- /main -->
+  </div>
+</div><!-- /appShell -->
+
+<!-- ======= MODALES ======= -->
+
+<div class="ovl" id="mSuspendre">
+  <div class="mdl sm">
+    <div class="mh"><div class="ic-dgr">⏸</div><div><h3>Suspendre GARAYA HOLDING ?</h3><p>L'espace passe en lecture seule pour tous ses utilisateurs.</p></div><button class="x" onclick="cm('mSuspendre')">✕</button></div>
+    <div class="mb">
+      <div class="fld"><label>Motif</label><select><option>Impayé persistant</option><option>Demande du client</option><option>Fraude suspectée</option><option>Autre</option></select></div>
+      <div class="fld"><label>Message affiché au client</label><textarea rows="2">Votre espace est temporairement suspendu. Contactez support@nexsirh.gn.</textarea></div>
+      <div class="alert or"><span class="ic">ℹ</span><div>Aucune donnée n'est supprimée. Les paies clôturées et bulletins restent téléchargeables par le client. Réactivation possible à tout moment.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mSuspendre')">Annuler</button><button class="btn btn-d" onclick="cm('mSuspendre');toast('Entreprise suspendue ⏸ — action journalisée, client notifié')">⏸ Suspendre</button></div>
+  </div>
+</div>
+
+<div class="ovl" id="mImpersonate">
+  <div class="mdl sm">
+    <div class="mh"><div class="ic-warn">🎧</div><div><h3>Accès support — GARAYA HOLDING</h3><p>Ouvrir l'application comme si vous étiez l'admin du client.</p></div><button class="x" onclick="cm('mImpersonate')">✕</button></div>
+    <div class="mb">
+      <div class="stat-line"><span>Consentement client</span><b><span class="bg bg-v">Accordé — ticket #248</span></b></div>
+      <div class="stat-line"><span>Durée de la session</span><b>60 minutes max</b></div>
+      <div class="stat-line"><span>Restrictions</span><b>Lecture seule sur salaires · aucune clôture de paie</b></div>
+      <div class="fld" style="margin-top:14px"><label>Motif (journalisé)</label><input value="Diagnostic écart RTS — ticket #248"></div>
+      <div class="alert rg"><span class="ic">🛡</span><div>Session <b>entièrement enregistrée</b> dans l'audit et visible par le client dans son journal.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mImpersonate')">Annuler</button><button class="btn btn-p" onclick="cm('mImpersonate');toast('Session support ouverte 🎧 — bannière visible côté client, fin auto dans 60 min')">Ouvrir la session</button></div>
+  </div>
+</div>
+
+<div class="ovl" id="mBareme">
+  <div class="mdl">
+    <div class="mh"><div><h3>⚖ Nouvelle version du barème RTS</h3><p>La version actuelle (v2026.1) reste appliquée aux paies antérieures à la date d'effet.</p></div><button class="x" onclick="cm('mBareme')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid" style="margin-bottom:14px">
+        <div class="fld"><label>Référence</label><input class="mono" value="v2026.2"></div>
+        <div class="fld"><label>Date d'effet</label><input type="date" value="2026-09-01"></div>
+      </div>
+      <table>
+        <tr><th>Tranche</th><th class="num">Plancher</th><th class="num">Plafond</th><th class="num">Taux</th></tr>
+        <tr><td class="mono">1</td><td><input class="mono" value="0" style="text-align:right"></td><td><input class="mono" value="2 000 000" style="text-align:right"></td><td><input class="mono" value="5 %" style="text-align:right;width:80px"></td></tr>
+        <tr><td class="mono">2</td><td><input class="mono" value="2 000 000" style="text-align:right"></td><td><input class="mono" value="5 000 000" style="text-align:right"></td><td><input class="mono" value="8 %" style="text-align:right;width:80px"></td></tr>
+        <tr><td class="mono">3</td><td><input class="mono" value="5 000 000" style="text-align:right"></td><td><input class="mono" value="10 000 000" style="text-align:right"></td><td><input class="mono" value="10 %" style="text-align:right;width:80px"></td></tr>
+        <tr><td class="mono">4</td><td><input class="mono" value="10 000 000" style="text-align:right"></td><td><input class="mono" value="∞" style="text-align:right"></td><td><input class="mono" value="15 %" style="text-align:right;width:80px"></td></tr>
+      </table>
+      <button class="btn btn-o btn-sm" style="margin-top:10px" onclick="toast('Ligne de tranche ajoutée')">+ Ajouter une tranche</button>
+      <div class="alert or" style="margin-top:12px"><span class="ic">🧪</span><div><b>Contrôle obligatoire :</b> la publication lance les tests de non-régression sur les 8 bulletins de référence GARAYA. Publication bloquée si un écart est détecté.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mBareme')">Annuler</button><button class="btn btn-o" onclick="toast('Simulation lancée sur les 8 bulletins de référence… ✓ conforme au franc près')">🧪 Simuler</button><button class="btn btn-p" onclick="cm('mBareme');toast('Barème v2026.2 publié ⚖ — effet 01/09, 49 entreprises notifiées')">Publier la version</button></div>
+  </div>
+</div>
+
+<div class="ovl" id="mPlanEdit">
+  <div class="mdl">
+    <div class="mh"><div><h3>▤ Modifier le plan Business</h3><p>Les 24 clients existants conservent leur tarif actuel.</p></div><button class="x" onclick="cm('mPlanEdit')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid">
+        <div class="fld"><label>Nom du plan</label><input value="Business"></div>
+        <div class="fld"><label>Prix mensuel (GNF)</label><input class="mono" value="950 000"></div>
+        <div class="fld"><label>Limite salariés</label><input class="mono" value="50"></div>
+        <div class="fld"><label>Limite utilisateurs</label><input value="Illimité"></div>
+        <div class="fld w"><label>Modules inclus</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:4px">
+            <span class="bg bg-v">Personnel ✓</span><span class="bg bg-v">Paie ✓</span><span class="bg bg-v">Congés ✓</span><span class="bg bg-v">Temps ✓</span><span class="bg bg-v">Portail employé ✓</span><span class="bg bg-g" style="cursor:pointer" onclick="toast('Module Rapports avancés ajouté au plan')">+ Rapports avancés</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mPlanEdit')">Annuler</button><button class="btn btn-p" onclick="cm('mPlanEdit');toast('Plan Business mis à jour ▤ — applicable aux nouveaux abonnements')">Enregistrer</button></div>
+  </div>
+</div>
+
+<div class="ovl" id="mAnnonce">
+  <div class="mdl">
+    <div class="mh"><div><h3>📣 Nouvelle annonce</h3><p>Bannière in-app et/ou email vers les entreprises ciblées.</p></div><button class="x" onclick="cm('mAnnonce')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid">
+        <div class="fld w"><label>Titre</label><input value="🇬🇳 Le paiement Orange Money arrive en août !"></div>
+        <div class="fld"><label>Canal</label><select><option>Bannière + Email</option><option>Bannière in-app</option><option>Email uniquement</option></select></div>
+        <div class="fld"><label>Cible</label><select><option>Toutes les entreprises (49)</option><option>Essais en cours (9)</option><option>Plan Business (24)</option><option>Impayées (2)</option></select></div>
+        <div class="fld w"><label>Message</label><textarea rows="3">Dès le 1er août, réglez votre abonnement Nex'SIRH par Orange Money ou MTN MoMo, sans carte bancaire.</textarea></div>
+        <div class="fld"><label>Envoi</label><select><option>Immédiat</option><option>Programmé</option></select></div>
+        <div class="fld"><label>Date programmée</label><input type="date" value="2026-07-20"></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mAnnonce')">Annuler</button><button class="btn btn-o" onclick="toast('Email de test envoyé à admin@nexsirh.gn ✉')">✉ M\'envoyer un test</button><button class="btn btn-p" onclick="cm('mAnnonce');toast('Annonce diffusée 📣 — 49 entreprises · bannière active + emails partis')">Diffuser</button></div>
+  </div>
+</div>
+
+<div class="ovl" id="mTicket">
+  <div class="mdl lg">
+    <div class="mh"><div><h3>🎧 Ticket #248 — Écart RTS sur bulletin</h3><p>GARAYA HOLDING · ouvert il y a 3 h par m.tolno@garaya.gn · <span class="bg bg-r">Urgent</span></p></div><button class="x" onclick="cm('mTicket')">✕</button></div>
+    <div class="mb">
+      <div class="alert or"><span class="ic">👤</span><div><b>Client — 09:41 :</b> « Le bulletin de M. Plegnemou affiche une RTS de 146 800 GNF mais notre ancien fichier Excel donnait 152 300. Pouvez-vous vérifier ? »</div></div>
+      <div class="alert vt"><span class="ic">🎧</span><div><b>Aïssatou (support) — 10:15 :</b> « Vérification faite : l'écart vient d'une prime saisie comme imposable dans l'ancien fichier alors qu'elle est exonérée. Le calcul Nex'SIRH est conforme au barème v2026.1 (5/8/10/15 %). Détail joint. »</div></div>
+      <div class="fld" style="margin-top:12px"><label>Répondre</label><textarea rows="3" placeholder="Votre réponse au client…">Bonjour M. Tolno, le détail tranche par tranche est joint. Le montant de 146 800 GNF est correct : …</textarea></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-o btn-sm" onclick="toast('Détail de calcul RTS joint au ticket 📎')">📎 Joindre le détail de calcul</button>
+        <button class="btn btn-o btn-sm" onclick="cm('mTicket');om('mImpersonate')">🎧 Ouvrir un accès support</button>
+        <button class="btn btn-o btn-sm" onclick="toast('Ticket réassigné à Mamadou K. (technique)')">↪ Réassigner</button>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mTicket')">Fermer</button><button class="btn btn-o" onclick="cm('mTicket');toast('Réponse envoyée ✉ — ticket en attente client')">Envoyer la réponse</button><button class="btn btn-p" onclick="cm('mTicket');toast('Ticket #248 résolu ✓ — enquête de satisfaction envoyée')">✓ Résoudre</button></div>
+  </div>
+</div>
+
+<div class="ovl" id="mRelance">
+  <div class="mdl sm">
+    <div class="mh"><div class="ic-warn">💳</div><div><h3>Relancer INJELEC-GUINÉE</h3><p>Facture de 950 000 GNF · 3 échecs carte · j.+12.</p></div><button class="x" onclick="cm('mRelance')">✕</button></div>
+    <div class="mb">
+      <div class="fld"><label>Action</label><select><option>Email de relance + nouveau lien de paiement</option><option>Retenter le prélèvement maintenant</option><option>Proposer le paiement par virement</option><option>Basculer en lecture seule (période de grâce finie)</option></select></div>
+      <div class="stat-line"><span>Historique</span><b>Relances : 02/07 ✉ · 08/07 ✉</b></div>
+      <div class="alert or" style="margin-top:10px"><span class="ic">ℹ</span><div>Politique : lecture seule à j.+15, jamais de suppression de données. Suspension manuelle réservée au Super-admin.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mRelance')">Annuler</button><button class="btn btn-p" onclick="cm('mRelance');toast('Relance envoyée 💳 — lien de paiement valable 7 jours')">Envoyer la relance</button></div>
+  </div>
+</div>
+
+<div class="ovl" id="mInviterAdmin">
+  <div class="mdl sm">
+    <div class="mh"><div><h3>Inviter un membre de l'équipe</h3><p>2FA obligatoire à la première connexion.</p></div><button class="x" onclick="cm('mInviterAdmin')">✕</button></div>
+    <div class="mb">
+      <div class="fld"><label>Email @nexsirh.gn</label><input type="email" placeholder="prenom@nexsirh.gn"></div>
+      <div class="fld"><label>Rôle console</label><select><option>Support (lecture + accès support)</option><option>Technique (monitoring, migrations)</option><option>Commercial (clients, plans, promos)</option><option>Super-admin</option></select></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mInviterAdmin')">Annuler</button><button class="btn btn-p" onclick="cm('mInviterAdmin');toast('Invitation envoyée ✉ — expire dans 48 h')">Inviter</button></div>
+  </div>
+</div>
+
+<div class="ovl" id="mNouvelleEntreprise">
+  <div class="mdl">
+    <div class="mh"><div><h3>🏢 Créer une entreprise manuellement</h3><p>Pour un client migré depuis Excel ou signé hors ligne.</p></div><button class="x" onclick="cm('mNouvelleEntreprise')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid">
+        <div class="fld w"><label>Raison sociale</label><input placeholder="Ex. : MINES BOKÉ SA"></div>
+        <div class="fld"><label>NIF</label><input class="mono"></div>
+        <div class="fld"><label>Email de l'admin client</label><input type="email"></div>
+        <div class="fld"><label>Plan</label><select><option>Essai 30 jours</option><option>Starter</option><option>Business</option><option>Cabinet</option></select></div>
+        <div class="fld"><label>Facturation</label><select><option>Carte (lien Stripe)</option><option>Virement manuel</option><option>Offert (partenaire)</option></select></div>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--encre);margin-top:6px"><input type="checkbox" checked style="width:auto"> Envoyer l'invitation + le guide d'import Excel à l'admin</label>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mNouvelleEntreprise')">Annuler</button><button class="btn btn-p" onclick="cm('mNouvelleEntreprise');toast('Entreprise créée 🏢 — invitation admin envoyée ✉')">Créer l\'entreprise</button></div>
+  </div>
+</div>
+
+<!-- Modale : Profil super-admin -->
+<div class="ovl" id="mProfilAdm">
+  <div class="mdl">
+    <div class="mh"><div><h3>👤 Mon profil &amp; sécurité</h3><p>Compte à privilèges élevés — chaque paramètre de sécurité compte.</p></div><button class="x" onclick="cm('mProfilAdm')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid">
+        <div class="fld"><label>Nom affiché</label><input value="Super Admin"></div>
+        <div class="fld"><label>Email</label><input type="email" value="admin@nexsirh.gn"></div>
+        <div class="fld"><label>Rôle console</label><input value="Super-admin" disabled style="background:#F3F1EA"></div>
+        <div class="fld"><label>Téléphone (alertes SMS)</label><input class="mono" value="+224 622 00 11 22"></div>
+      </div>
+      <div class="tglrow" style="margin-top:8px"><div><b>Authentification à deux facteurs</b><small>Obligatoire — ne peut pas être désactivée pour un super-admin.</small></div><span class="bg bg-v">Activée ✓</span></div>
+      <div class="tglrow"><div><b>Codes de secours</b><small>8 codes à usage unique, à conserver hors ligne.</small></div><button class="btn btn-o btn-sm" onclick="toast('8 nouveaux codes générés 🔐 — les anciens sont révoqués')">Régénérer</button></div>
+      <div class="tglrow"><div><b>Alerte de connexion inhabituelle</b><small>Email + SMS si nouvelle IP ou nouvel appareil.</small></div><span class="bg bg-v">Active ✓</span></div>
+      <div class="tglrow"><div><b>Sessions actives</b><small>1 session : ce navigateur (Conakry, 102.176.44.10).</small></div><button class="btn btn-o btn-sm" onclick="toast('Toutes les autres sessions ont été révoquées 🛡')">Tout révoquer</button></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mProfilAdm')">Fermer</button><button class="btn btn-p" onclick="cm('mProfilAdm');toast('Profil mis à jour ✓ — action journalisée')">Enregistrer</button></div>
+  </div>
+</div>
+
+<!-- Modale : Mot de passe admin -->
+<div class="ovl" id="mMdpAdm">
+  <div class="mdl sm">
+    <div class="mh"><div><h3>🔑 Modifier le mot de passe</h3><p>Un code 2FA sera demandé pour confirmer.</p></div><button class="x" onclick="cm('mMdpAdm')">✕</button></div>
+    <div class="mb">
+      <div class="fld"><label>Mot de passe actuel</label><input type="password" placeholder="••••••••••••"></div>
+      <div class="fld"><label>Nouveau mot de passe</label><input type="password" placeholder="12 caractères min. pour un super-admin"></div>
+      <div class="fld"><label>Confirmation</label><input type="password" placeholder="••••••••••••"></div>
+      <div class="fld"><label>Code 2FA</label><input class="mono" placeholder="000 000" style="letter-spacing:.3em;text-align:center"></div>
+      <div class="alert or"><span class="ic">🛡</span><div>Toutes les sessions console seront déconnectées et l’équipe sera notifiée du changement.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mMdpAdm')">Annuler</button><button class="btn btn-p" onclick="cm('mMdpAdm');toast('Mot de passe modifié ✓ — sessions révoquées, équipe notifiée 🛡')">Modifier</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const APP_VIEWS=['dash','entreprises','entreprise','abo','plans','baremes','support','annonces','monitor','audit','settings'];
+const TITLES={dash:"Vue d'ensemble",entreprises:'Entreprises clientes',entreprise:'Fiche entreprise',abo:'Abonnements & facturation',plans:'Plans & tarifs',baremes:'Barèmes légaux — Guinée',support:'Support client',annonces:'Annonces & communication',monitor:'Monitoring & santé',audit:'Audit & sécurité',settings:'Équipe & API'};
+const NAVMAP={entreprise:'entreprises'};
+function go(v){
+  document.querySelectorAll('.full').forEach(s=>s.classList.add('hidden'));
+  const shell=document.getElementById('appShell');
+  if(APP_VIEWS.includes(v)){
+    shell.classList.remove('hidden');
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+    document.getElementById('v-'+v).classList.add('on');
+    document.getElementById('tbTitle').textContent=TITLES[v]||'';
+    const nk=NAVMAP[v]||v;
+    document.querySelectorAll('.rail .nv').forEach(a=>a.classList.toggle('on',a.dataset.v===nk));
+    window.scrollTo({top:0});
+  }else{shell.classList.add('hidden');document.getElementById('v-'+v).classList.remove('hidden');}
+  document.querySelectorAll('#mBar button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+}
+document.querySelectorAll('#mBar button[data-v]').forEach(b=>b.onclick=()=>go(b.dataset.v));
+document.querySelectorAll('.rail .nv').forEach(a=>a.onclick=e=>{e.preventDefault();go(a.dataset.v)});
+function tab(btn,id,cls){
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  btn.closest('.view').querySelectorAll('.'+cls).forEach(t=>t.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+function om(id){document.getElementById(id).classList.add('on')}
+function cm(id){document.getElementById(id).classList.remove('on')}
+document.querySelectorAll('.ovl').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on')}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.ovl.on').forEach(o=>o.classList.remove('on'))});
+function tgP(id){
+  const m=document.getElementById(id);
+  const open=m.classList.contains('open');
+  document.querySelectorAll('.pmenu').forEach(x=>{x.classList.remove('open');x.querySelector('.pdrop').classList.remove('on')});
+  if(!open){m.classList.add('open');m.querySelector('.pdrop').classList.add('on')}
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.pmenu'))document.querySelectorAll('.pmenu').forEach(x=>{x.classList.remove('open');x.querySelector('.pdrop').classList.remove('on')});
+});
+function toast(msg){const t=document.createElement('div');t.className='tst';t.innerHTML='<i>●</i>'+msg;document.getElementById('toast').appendChild(t);setTimeout(()=>t.remove(),3800);}
+</script>
+</body>
+</html>

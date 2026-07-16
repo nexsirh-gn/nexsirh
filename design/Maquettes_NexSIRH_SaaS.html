@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nex'SIRH Guinée — Maquettes complètes du SaaS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vert:#0F5C49; --vert2:#0A3F33; --vert3:#124F41; --menthe:#E7F2EE; --menthe2:#F1F7F4;
+  --encre:#1C2422; --gris:#5C6B66; --papier:#F6F8F7; --blanc:#FFFFFF;
+  --or:#D9A441; --or-p:#FBF3E2; --rouge:#C24B3A; --rouge-p:#FBEAE7;
+  --bleu:#2E6E8E; --bleu-p:#E8F1F5; --ligne:#DFE8E4;
+  --r:12px; --sh:0 1px 2px rgba(20,40,35,.06),0 4px 14px rgba(20,40,35,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Public Sans',sans-serif;background:var(--papier);color:var(--encre);font-size:14px;line-height:1.5}
+h1,h2,h3,.disp{font-family:'Bricolage Grotesque',sans-serif}
+.mono,.gnf{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+button{font-family:inherit;cursor:pointer;border:none;background:none;font-size:inherit}
+input,select,textarea{font-family:inherit;font-size:14px;padding:9px 12px;border:1.5px solid var(--ligne);border-radius:8px;background:var(--blanc);width:100%;color:var(--encre)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--vert);outline-offset:1px;border-color:var(--vert)}
+label{display:block;font-size:12px;font-weight:600;color:var(--gris);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.hidden{display:none!important}
+
+/* ===== Barre maquettes ===== */
+#mBar{position:sticky;top:0;z-index:400;background:var(--encre);color:#E8EDEB;padding:10px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+#mBar .t{font-family:'Bricolage Grotesque';font-weight:800;font-size:14px;color:var(--or);white-space:nowrap}
+#mBar .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+#mBar .gl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8FA39C;margin:0 4px 0 10px}
+#mBar button{color:#D6E0DC;font-size:12px;padding:5px 10px;border-radius:6px;border:1px solid transparent}
+#mBar button:hover{background:#2B3634}
+#mBar button.on{background:var(--vert);color:#fff;border-color:#1E7A62}
+
+/* ===== Boutons ===== */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;font-weight:600;font-size:13.5px;transition:.15s}
+.btn-p{background:var(--vert);color:#fff}.btn-p:hover{background:var(--vert2)}
+.btn-o{border:1.5px solid var(--ligne);color:var(--encre);background:var(--blanc)}.btn-o:hover{border-color:var(--vert);color:var(--vert)}
+.btn-d{background:var(--rouge);color:#fff}.btn-d:hover{filter:brightness(.92)}
+.btn-g{color:var(--gris)}.btn-g:hover{color:var(--encre)}
+.btn-sm{padding:6px 11px;font-size:12.5px;border-radius:7px}
+.btn-or{background:var(--or);color:#3A2C0E}.btn-or:hover{filter:brightness(.95)}
+
+/* ===== Badges ===== */
+.bg{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:11.5px;font-weight:700}
+.bg::before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor}
+.bg-v{background:var(--menthe);color:var(--vert)}
+.bg-o{background:var(--or-p);color:#96690F}
+.bg-r{background:var(--rouge-p);color:var(--rouge)}
+.bg-b{background:var(--bleu-p);color:var(--bleu)}
+.bg-g{background:#EEF1F0;color:var(--gris)}
+
+/* ===== Écrans plein / auth ===== */
+.full{min-height:calc(100vh - 46px)}
+.auth{display:grid;grid-template-columns:460px 1fr;min-height:calc(100vh - 46px)}
+.auth-side{background:linear-gradient(160deg,var(--vert2),var(--vert) 70%,#15705A);color:#fff;padding:56px 48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.auth-side::after{content:"";position:absolute;right:-90px;bottom:-90px;width:320px;height:320px;border-radius:50%;border:56px solid rgba(217,164,65,.16)}
+.logo{font-family:'Bricolage Grotesque';font-weight:800;font-size:22px;letter-spacing:-.01em}
+.logo b{color:var(--or)}
+.auth-side h1{font-size:34px;font-weight:800;line-height:1.15;margin:18px 0 14px;letter-spacing:-.02em}
+.auth-side p{color:#CFE4DC;font-size:15px;max-width:340px}
+.auth-side .pt{font-size:12px;color:#9FC3B7}
+.auth-main{display:flex;align-items:center;justify-content:center;padding:40px}
+.card{background:var(--blanc);border:1px solid var(--ligne);border-radius:16px;box-shadow:var(--sh)}
+.auth-card{width:420px;padding:36px}
+.auth-card h2{font-size:22px;font-weight:700;margin-bottom:4px}
+.auth-card .sub{color:var(--gris);font-size:13.5px;margin-bottom:24px}
+.fld{margin-bottom:16px}
+.link{color:var(--vert);font-weight:600;text-decoration:none;font-size:13px}
+.steps{display:flex;gap:8px;margin-bottom:22px}
+.steps span{flex:1;height:4px;border-radius:99px;background:var(--ligne)}
+.steps span.on{background:var(--vert)}
+
+/* ===== Shell application ===== */
+#appShell{display:grid;grid-template-columns:236px 1fr;min-height:calc(100vh - 46px)}
+.rail{background:var(--vert2);color:#C9DDD5;display:flex;flex-direction:column;padding:20px 12px;position:sticky;top:46px;height:calc(100vh - 46px)}
+.rail .logo{color:#fff;padding:0 12px 18px;font-size:18px}
+.rail .sec{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#7FA396;padding:14px 12px 6px}
+.rail a{display:flex;align-items:center;gap:10px;color:#C9DDD5;text-decoration:none;padding:9px 12px;border-radius:9px;font-size:13.5px;font-weight:500;position:relative;margin-bottom:1px}
+.rail a:hover{background:rgba(255,255,255,.07);color:#fff}
+.rail a.on{background:var(--vert3);color:#fff;font-weight:600}
+.rail a.on::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:4px;border-radius:0 4px 4px 0;background:var(--or)}
+.rail .ico{width:18px;text-align:center;opacity:.9}
+.rail .bot{margin-top:auto;border-top:1px solid rgba(255,255,255,.12);padding-top:12px}
+.rail .usr{display:flex;gap:10px;align-items:center;padding:8px 12px}
+.av{width:32px;height:32px;border-radius:99px;background:var(--or);color:#3A2C0E;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex:none}
+.av.g{background:var(--menthe);color:var(--vert)}
+.rail .usr small{display:block;color:#8FB3A7;font-size:11px}
+
+.topbar{background:var(--blanc);border-bottom:1px solid var(--ligne);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:46px;z-index:50}
+.topbar h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
+.crumb{color:var(--gris);font-size:12.5px}
+.topbar .sp{flex:1}
+.srch{position:relative;width:260px}
+.srch input{padding-left:34px}
+.srch::before{content:"⌕";position:absolute;left:11px;top:7px;font-size:17px;color:var(--gris)}
+.bell{position:relative;font-size:18px;color:var(--gris);padding:6px}
+.bell i{position:absolute;top:2px;right:0;width:8px;height:8px;border-radius:99px;background:var(--rouge);border:2px solid #fff;font-style:normal}
+.main{padding:26px 28px 60px}
+.view{display:none}.view.on{display:block}
+
+/* ===== Composants ===== */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+.kpi{background:var(--blanc);border:1px solid var(--ligne);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
+.kpi .l{font-size:12px;color:var(--gris);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.kpi .v{font-family:'IBM Plex Mono';font-size:24px;font-weight:600;margin:6px 0 4px;letter-spacing:-.02em}
+.kpi .d{font-size:12px;color:var(--gris)}
+.kpi .d b{color:var(--vert)}
+.kpi.gold{border-top:3px solid var(--or)}
+.grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:18px}
+.panel{background:var(--blanc);border:1px solid var(--ligne);border-radius:var(--r);box-shadow:var(--sh)}
+.panel .hd{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--ligne)}
+.panel .hd h3{font-size:15px;font-weight:700}
+.panel .hd .sp{flex:1}
+.panel .bd{padding:18px}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--gris);text-align:left;padding:10px 14px;border-bottom:1px solid var(--ligne);background:var(--menthe2);font-weight:700}
+td{padding:11px 14px;border-bottom:1px solid #ECF1EF;font-size:13.5px;vertical-align:middle}
+tr:hover td{background:var(--menthe2)}
+td.gnf,th.num{text-align:right}
+.emp{display:flex;gap:10px;align-items:center}
+.emp small{display:block;color:var(--gris);font-size:11.5px}
+.emp b{font-size:13.5px}
+.tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--ligne);margin-bottom:20px}
+.tabs button{padding:10px 16px;font-weight:600;color:var(--gris);border-bottom:2.5px solid transparent;margin-bottom:-1.5px;font-size:13.5px}
+.tabs button.on{color:var(--vert);border-color:var(--vert)}
+.tabs button:hover{color:var(--encre)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+.fgrid .w{grid-column:1/-1}
+.alert{display:flex;gap:12px;padding:13px 15px;border-radius:10px;font-size:13px;margin-bottom:10px;align-items:flex-start}
+.alert .ic{font-size:16px}
+.alert.or{background:var(--or-p);color:#7A560D;border:1px solid #EBD9AF}
+.alert.rg{background:var(--rouge-p);color:#8E3325;border:1px solid #F0CFC8}
+.alert.vt{background:var(--menthe);color:var(--vert2);border:1px solid #CBE2D9}
+.bars{display:flex;align-items:flex-end;gap:10px;height:150px;padding:10px 4px 0}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.bar i{width:100%;max-width:38px;background:linear-gradient(180deg,#1B7A61,var(--vert));border-radius:6px 6px 0 0;font-style:normal}
+.bar.hl i{background:linear-gradient(180deg,#E8B95C,var(--or))}
+.bar small{font-size:10.5px;color:var(--gris)}
+.donut{width:130px;height:130px;border-radius:50%;background:conic-gradient(var(--vert) 0 46%,var(--or) 46% 71%,var(--bleu) 71% 88%,#B9CCC5 88%);position:relative;flex:none}
+.donut::after{content:"";position:absolute;inset:26px;border-radius:50%;background:var(--blanc)}
+.leg{font-size:12.5px;display:grid;gap:8px}
+.leg i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:7px;font-style:normal}
+.tools{display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+.tools .sp{flex:1}
+.chip{padding:6px 12px;border:1.5px solid var(--ligne);border-radius:99px;font-size:12.5px;font-weight:600;color:var(--gris);background:var(--blanc)}
+.chip.on{background:var(--vert);border-color:var(--vert);color:#fff}
+.pgn{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;color:var(--gris);font-size:12.5px}
+.pgn .pgs{display:flex;gap:4px}
+.pgn button{width:28px;height:28px;border-radius:7px;border:1px solid var(--ligne);font-size:12px;background:#fff}
+.pgn button.on{background:var(--vert);color:#fff;border-color:var(--vert)}
+.stat-line{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--ligne);font-size:13px}
+.stat-line:last-child{border:none}
+.stat-line b.gnf{font-weight:600}
+.timeline{position:relative;padding-left:22px}
+.timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--ligne)}
+.tl{position:relative;padding-bottom:18px}
+.tl::before{content:"";position:absolute;left:-21px;top:4px;width:12px;height:12px;border-radius:99px;background:var(--blanc);border:3px solid var(--vert)}
+.tl.gold::before{border-color:var(--or)}
+.tl small{color:var(--gris);font-size:11.5px;display:block}
+.wk{display:grid;grid-template-columns:170px repeat(14,1fr);gap:3px;font-size:11px}
+.wk .nm{font-weight:600;font-size:12px;display:flex;align-items:center}
+.wk .dy{height:26px;border-radius:5px;background:var(--menthe2);border:1px solid #E6EEEA}
+.wk .dy.we{background:#EDF0EF}
+.wk .dy.ca{background:var(--vert);border-color:var(--vert)}
+.wk .dy.cm{background:var(--rouge);border-color:var(--rouge)}
+.wk .dy.pm{background:var(--or);border-color:var(--or)}
+.wk .hd7{color:var(--gris);text-align:center;font-size:10px;padding-bottom:2px}
+.prog{height:8px;border-radius:99px;background:var(--ligne);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--vert);border-radius:99px;font-style:normal}
+.prog i.o{background:var(--or)}
+
+/* ===== Menu profil ===== */
+.pmenu{position:relative}
+.pchip{display:flex;align-items:center;gap:9px;padding:5px 10px 5px 5px;border-radius:99px;border:1.5px solid var(--ligne);background:var(--blanc)}
+.pchip:hover{border-color:var(--vert)}
+.pchip .pinfo{text-align:left;line-height:1.15}
+.pchip .pinfo b{font-size:12.5px;display:block}
+.pchip .pinfo small{font-size:10.5px;color:var(--gris)}
+.pchip .chev{color:var(--gris);font-size:10px;transition:.15s}
+.pmenu.open .chev{transform:rotate(180deg)}
+.pdrop{position:absolute;top:calc(100% + 8px);right:0;width:284px;background:var(--blanc);border:1px solid var(--ligne);border-radius:14px;box-shadow:0 18px 44px rgba(10,30,25,.2);z-index:220;display:none;animation:pop .15s ease;overflow:hidden}
+.pdrop.on{display:block}
+.pdrop .ph{display:flex;gap:11px;align-items:center;padding:14px;background:var(--menthe2);border-bottom:1px solid var(--ligne)}
+.pdrop .ph b{font-size:14px}
+.pdrop .ph small{display:block;color:var(--gris);font-size:11.5px}
+.pdrop a{display:flex;gap:11px;align-items:center;padding:10px 15px;color:var(--encre);text-decoration:none;font-size:13.5px;font-weight:500;cursor:pointer}
+.pdrop a:hover{background:var(--menthe2)}
+.pdrop a .pi{width:18px;text-align:center;opacity:.75}
+.pdrop a.dgr{color:var(--rouge)}
+.pdrop a.dgr:hover{background:var(--rouge-p)}
+.pdrop .dv{height:1px;background:var(--ligne);margin:4px 0}
+.pdrop .foot{padding:8px 15px 11px;font-size:10.5px;color:var(--gris);border-top:1px solid var(--ligne)}
+.pwd-meter{display:flex;gap:4px;margin-top:6px}
+.pwd-meter i{flex:1;height:4px;border-radius:99px;background:var(--ligne);font-style:normal}
+.pwd-meter i.ok{background:var(--vert)}
+.tglrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed var(--ligne)}
+.tglrow:last-child{border:none}
+.tglrow small{display:block;color:var(--gris);font-size:11.5px}
+.tgl{width:38px;height:21px;border-radius:99px;background:var(--ligne);position:relative;flex:none;cursor:pointer;transition:.15s}
+.tgl::after{content:"";position:absolute;top:2.5px;left:3px;width:16px;height:16px;border-radius:99px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:.15s}
+.tgl.on{background:var(--vert)}
+.tgl.on::after{left:19px}
+
+/* ===== Bulletin ===== */
+.bltn{font-size:12.5px}
+.bltn .bh{display:flex;justify-content:space-between;border:1.5px solid var(--encre);padding:14px;border-radius:10px 10px 0 0}
+.bltn .bh h4{font-family:'Bricolage Grotesque';font-size:16px}
+.bltn table{border:1.5px solid var(--encre);border-top:none}
+.bltn th{background:var(--menthe);color:var(--encre)}
+.bltn td{padding:7px 12px;font-size:12.5px}
+.bltn .tot td{background:var(--menthe2);font-weight:700}
+.bltn .net td{background:var(--vert);color:#fff;font-weight:700;font-size:14px}
+
+/* ===== Modales & toasts ===== */
+.ovl{position:fixed;inset:0;background:rgba(16,28,24,.55);backdrop-filter:blur(2px);z-index:500;display:none;align-items:flex-start;justify-content:center;padding:60px 20px;overflow:auto}
+.ovl.on{display:flex}
+.mdl{background:var(--blanc);border-radius:16px;width:560px;max-width:100%;box-shadow:0 24px 60px rgba(10,30,25,.3);animation:pop .18s ease}
+.mdl.lg{width:760px}.mdl.sm{width:440px}
+@keyframes pop{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.mdl .mh{display:flex;align-items:flex-start;gap:12px;padding:20px 24px 0}
+.mdl .mh h3{font-size:17px;font-weight:700}
+.mdl .mh p{color:var(--gris);font-size:13px;margin-top:3px}
+.mdl .x{margin-left:auto;font-size:20px;color:var(--gris);line-height:1;padding:2px 6px;border-radius:6px}
+.mdl .x:hover{background:var(--menthe2);color:var(--encre)}
+.mdl .mb{padding:20px 24px}
+.mdl .mf{display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--ligne);background:var(--menthe2);border-radius:0 0 16px 16px}
+.ic-warn{width:42px;height:42px;border-radius:12px;background:var(--or-p);color:#96690F;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.ic-dgr{width:42px;height:42px;border-radius:12px;background:var(--rouge-p);color:var(--rouge);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+#toast{position:fixed;bottom:24px;right:24px;z-index:600;display:flex;flex-direction:column;gap:10px}
+.tst{background:var(--encre);color:#fff;padding:13px 18px;border-radius:11px;font-size:13.5px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;animation:pop .2s}
+.tst i{font-style:normal;color:var(--or)}
+
+/* ===== Portail employé ===== */
+.portail-top{background:var(--vert2);color:#fff;padding:0 28px}
+.portail-top .in{display:flex;align-items:center;gap:26px;height:60px}
+.portail-top nav{display:flex;gap:6px;height:100%}
+.portail-top nav button{color:#B9D5CB;font-weight:600;padding:0 14px;border-bottom:3px solid transparent;font-size:13.5px}
+.portail-top nav button.on{color:#fff;border-color:var(--or)}
+.hero-emp{background:linear-gradient(120deg,var(--vert2),var(--vert));color:#fff;padding:30px 28px}
+.hero-emp h2{font-size:23px;font-weight:800;letter-spacing:-.01em}
+.hero-emp p{color:#C6E0D7;font-size:13.5px}
+
+/* ===== Landing / pricing ===== */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.plan{border:1.5px solid var(--ligne);border-radius:14px;padding:22px;background:var(--blanc);position:relative}
+.plan.hl{border-color:var(--or);box-shadow:0 8px 26px rgba(217,164,65,.18)}
+.plan .tag{position:absolute;top:-11px;left:20px;background:var(--or);color:#3A2C0E;font-size:10.5px;font-weight:800;letter-spacing:.06em;padding:3px 10px;border-radius:99px;text-transform:uppercase}
+.plan h4{font-size:16px;font-weight:700}
+.plan .px{font-family:'IBM Plex Mono';font-size:24px;font-weight:600;margin:10px 0 2px}
+.plan .px small{font-size:12px;color:var(--gris);font-family:'Public Sans'}
+.plan ul{list-style:none;margin:14px 0 18px;display:grid;gap:8px;font-size:13px}
+.plan li::before{content:"✓";color:var(--vert);font-weight:800;margin-right:8px}
+.note{font-size:12px;color:var(--gris)}
+.annot{background:var(--encre);color:#D6E0DC;font-size:12px;padding:8px 14px;border-radius:8px;display:inline-block;margin-bottom:16px}
+.annot b{color:var(--or)}
+@media(max-width:1100px){.kpis{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.auth{grid-template-columns:1fr}.auth-side{display:none}#appShell{grid-template-columns:200px 1fr}.plans{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ======= BARRE DE NAVIGATION DES MAQUETTES ======= -->
+<div id="mBar">
+  <span class="t">NEX'SIRH · MAQUETTES</span>
+  <div class="grp">
+    <span class="gl">Auth</span>
+    <button data-v="login" class="on">Connexion</button>
+    <button data-v="signup">Inscription</button>
+    <button data-v="forgot">Mot de passe</button>
+    <span class="gl">Application</span>
+    <button data-v="dash">Dashboard</button>
+    <button data-v="employes">Employés</button>
+    <button data-v="fiche">Fiche employé</button>
+    <button data-v="paie">Paie</button>
+    <button data-v="conges">Congés</button>
+    <button data-v="temps">Temps</button>
+    <button data-v="docs">Documents</button>
+    <button data-v="rapports">Rapports</button>
+    <button data-v="params">Paramétrage</button>
+    <button data-v="fact">Abonnement</button>
+    <span class="gl">Portail</span>
+    <button data-v="portail">Portail employé</button>
+    <span class="gl">Modales</span>
+    <button onclick="om('mNouvelEmploye')">+Employé</button>
+    <button onclick="om('mBulletin')">Bulletin</button>
+    <button onclick="om('mCloture')">Clôture</button>
+    <button onclick="om('mDemandeConge')">Congé</button>
+    <button onclick="om('mValiderConge')">Validation</button>
+    <button onclick="om('mGenererDoc')">Doc</button>
+    <button onclick="om('mDocsAdmin')">Docs admin</button>
+    <button onclick="om('mJournal')">Journal paie</button>
+    <button onclick="om('mModifEmploye')">Modif. employé</button>
+    <button onclick="om('mInviter')">Inviter</button>
+    <button onclick="om('mMouvement')">Mouvement</button>
+    <button onclick="om('mPlan')">Plan</button>
+  </div>
+</div>
+
+<!-- ======= ÉCRAN : CONNEXION ======= -->
+<section class="full" id="v-login">
+  <div class="auth">
+    <div class="auth-side">
+      <div class="logo">Nex<b>'</b>SIRH <span style="font-weight:400;font-size:13px;opacity:.8">Guinée</span></div>
+      <div>
+        <h1>La paie guinéenne,<br>enfin simple.</h1>
+        <p>Personnel, paie CNSS &amp; RTS, congés et documents officiels — pour les PME jusqu'à 50 salariés.</p>
+        <div style="margin-top:26px;display:flex;gap:10px">
+          <span class="bg" style="background:rgba(255,255,255,.12);color:#fff">Conforme Loi L/2014/072/CNT</span>
+          <span class="bg" style="background:rgba(217,164,65,.2);color:var(--or)">Barème RTS à jour</span>
+        </div>
+      </div>
+      <div class="pt">© 2026 Nex'SIRH · Conakry, Guinée</div>
+    </div>
+    <div class="auth-main">
+      <div class="card auth-card">
+        <h2>Bon retour 👋</h2>
+        <p class="sub">Connectez-vous à votre espace entreprise.</p>
+        <div class="fld"><label>Adresse email</label><input type="email" value="m.tolno@garaya-holding.gn"></div>
+        <div class="fld"><label>Mot de passe</label><input type="password" value="••••••••••"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <label style="display:flex;gap:7px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;margin:0;color:var(--encre)"><input type="checkbox" checked style="width:auto"> Rester connecté</label>
+          <a class="link" href="#" onclick="go('forgot');return false">Mot de passe oublié ?</a>
+        </div>
+        <button class="btn btn-p" style="width:100%;justify-content:center" onclick="go('dash');toast('Connexion réussie — bienvenue Michel TOLNO')">Se connecter</button>
+        <p style="text-align:center;margin-top:18px;font-size:13px;color:var(--gris)">Nouvelle entreprise ? <a class="link" href="#" onclick="go('signup');return false">Démarrer l'essai gratuit 30 jours</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= ÉCRAN : INSCRIPTION ======= -->
+<section class="full hidden" id="v-signup">
+  <div class="auth">
+    <div class="auth-side">
+      <div class="logo">Nex<b>'</b>SIRH</div>
+      <div>
+        <h1>30 jours d'essai.<br>Sans carte bancaire.</h1>
+        <p>Créez votre espace, importez vos salariés depuis Excel et générez votre première paie aujourd'hui.</p>
+        <div style="margin-top:30px;display:grid;gap:14px;font-size:14px">
+          <div>✓ &nbsp;Paie validée sur des bulletins réels</div>
+          <div>✓ &nbsp;Bulletins PDF, attestations, certificats</div>
+          <div>✓ &nbsp;Import de vos données Excel en 5 minutes</div>
+        </div>
+      </div>
+      <div class="pt">Déjà 40+ PME nous font confiance à Conakry</div>
+    </div>
+    <div class="auth-main">
+      <div class="card auth-card" style="width:480px">
+        <div class="steps"><span class="on"></span><span class="on"></span><span></span></div>
+        <div id="sg2">
+        <h2>Créer votre entreprise</h2>
+        <p class="sub">Étape 2 sur 3 — Informations légales</p>
+        <div class="fgrid">
+          <div class="fld w"><label>Raison sociale</label><input value="GARAYA HOLDING"></div>
+          <div class="fld"><label>Forme juridique</label><select><option>SARL</option><option>SARLU</option><option>SA</option><option>SAS</option></select></div>
+          <div class="fld"><label>NIF</label><input placeholder="375106275" class="mono"></div>
+          <div class="fld"><label>N° employeur CNSS</label><input placeholder="—" class="mono"></div>
+          <div class="fld"><label>Effectif</label><select><option>1 – 15 salariés</option><option selected>16 – 50 salariés</option></select></div>
+          <div class="fld w"><label>Adresse</label><input value="Kipé, Commune de Ratoma, Conakry"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn btn-o" onclick="toast('Retour à l\'étape 1 — Votre email')">← Retour</button>
+          <button class="btn btn-p" style="flex:1;justify-content:center" onclick="sgStep(3)">Continuer</button>
+        </div>
+        </div>
+        <div id="sg3" class="hidden">
+        <h2>Votre compte administrateur</h2>
+        <p class="sub">Étape 3 sur 3 — Vous pourrez inviter d'autres utilisateurs ensuite.</p>
+        <div class="fgrid">
+          <div class="fld"><label>Prénom</label><input value="Michel"></div>
+          <div class="fld"><label>Nom</label><input value="TOLNO"></div>
+          <div class="fld w"><label>Email professionnel</label><input type="email" value="m.tolno@garaya-holding.gn"></div>
+          <div class="fld"><label>Mot de passe</label><input type="password" placeholder="8 caractères min."></div>
+          <div class="fld"><label>Confirmation</label><input type="password" placeholder="••••••••"></div>
+          <div class="fld w"><label>Votre rôle</label><select><option>D.R.H / Responsable RH</option><option>Gérant / Directeur Général</option><option>Comptable</option></select></div>
+        </div>
+        <label style="display:flex;gap:8px;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--gris);margin:4px 0 14px"><input type="checkbox" checked style="width:auto;margin-top:2px"> J'accepte les conditions d'utilisation et la politique de confidentialité des données RH.</label>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-o" onclick="sgStep(2)">← Retour</button>
+          <button class="btn btn-p" style="flex:1;justify-content:center" onclick="go('dash');toast('Espace GARAYA HOLDING créé 🎉 — essai de 30 jours activé')">Créer mon espace</button>
+        </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= ÉCRAN : MOT DE PASSE OUBLIÉ ======= -->
+<section class="full hidden" id="v-forgot">
+  <div class="auth">
+    <div class="auth-side">
+      <div class="logo">Nex<b>'</b>SIRH</div>
+      <div><h1>Récupérez<br>votre accès.</h1><p>Un lien sécurisé de réinitialisation vous sera envoyé par email.</p></div>
+      <div class="pt">Besoin d'aide ? support@nexsirh.gn</div>
+    </div>
+    <div class="auth-main">
+      <div class="card auth-card">
+        <h2>Mot de passe oublié</h2>
+        <p class="sub">Saisissez l'email associé à votre compte.</p>
+        <div class="fld"><label>Adresse email</label><input type="email" placeholder="vous@entreprise.gn"></div>
+        <button class="btn btn-p" style="width:100%;justify-content:center" onclick="toast('Email de réinitialisation envoyé ✉')">Envoyer le lien</button>
+        <p style="text-align:center;margin-top:18px"><a class="link" href="#" onclick="go('login');return false">← Retour à la connexion</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= SHELL APPLICATION ======= -->
+<div id="appShell" class="hidden">
+  <aside class="rail">
+    <div class="logo">Nex<b>'</b>SIRH</div>
+    <a href="#" data-v="dash" class="nv on"><span class="ico">◫</span> Tableau de bord</a>
+    <div class="sec">Gestion RH</div>
+    <a href="#" data-v="employes" class="nv"><span class="ico">👥</span> Employés</a>
+    <a href="#" data-v="conges" class="nv"><span class="ico">🌴</span> Congés &amp; absences</a>
+    <a href="#" data-v="temps" class="nv"><span class="ico">⏱</span> Temps &amp; présence</a>
+    <div class="sec">Paie &amp; finances</div>
+    <a href="#" data-v="paie" class="nv"><span class="ico">₣</span> Paie mensuelle</a>
+    <a href="#" data-v="docs" class="nv"><span class="ico">🗎</span> Documents</a>
+    <a href="#" data-v="rapports" class="nv"><span class="ico">📊</span> Rapports</a>
+    <div class="sec">Administration</div>
+    <a href="#" data-v="params" class="nv"><span class="ico">⚙</span> Paramétrage</a>
+    <a href="#" data-v="fact" class="nv"><span class="ico">◈</span> Abonnement</a>
+    <div class="bot">
+      <div class="usr"><span class="av">MT</span><div><b style="font-size:13px;color:#fff">Michel TOLNO</b><small>D.R.H — GARAYA HOLDING</small></div></div>
+    </div>
+  </aside>
+  <div>
+    <div class="topbar">
+      <div><h2 id="tbTitle">Tableau de bord</h2><span class="crumb" id="tbCrumb">GARAYA HOLDING · Juillet 2026</span></div>
+      <span class="sp"></span>
+      <div class="srch"><input placeholder="Rechercher un salarié, un document…"></div>
+      <button class="bell">🔔<i></i></button>
+      <button class="btn btn-p btn-sm" onclick="om('mNouvelEmploye')">+ Nouvel employé</button>
+      <div class="pmenu" id="pmApp">
+        <button class="pchip" onclick="tgP('pmApp')"><span class="av">MT</span><span class="pinfo"><b>Michel TOLNO</b><small>D.R.H — RH admin</small></span><span class="chev">▾</span></button>
+        <div class="pdrop">
+          <div class="ph"><span class="av" style="width:40px;height:40px;font-size:14px">MT</span><div><b>Michel TOLNO</b><small>m.tolno@garaya.gn</small><small><span class="bg bg-v" style="margin-top:3px">Rôle : RH (admin)</span></small></div></div>
+          <a onclick="tgP('pmApp');om('mProfil')"><span class="pi">👤</span> Mon profil</a>
+          <a onclick="tgP('pmApp');om('mMdp')"><span class="pi">🔑</span> Modifier le mot de passe</a>
+          <a onclick="tgP('pmApp');om('mNotifs')"><span class="pi">🔔</span> Préférences de notifications</a>
+          <div class="dv"></div>
+          <a onclick="tgP('pmApp');toast('Centre d’aide ouvert — guides et contact support 📖')"><span class="pi">❓</span> Aide &amp; support</a>
+          <a onclick="tgP('pmApp');toast('Journal de vos connexions affiché — dernière : aujourd’hui 09:12')"><span class="pi">🛡</span> Mes connexions</a>
+          <div class="dv"></div>
+          <a class="dgr" onclick="tgP('pmApp');go('login');toast('Vous êtes déconnecté(e) — à bientôt 👋')"><span class="pi">⎋</span> Se déconnecter</a>
+          <div class="foot">Connecté depuis 09:12 · GARAYA HOLDING · v1.0</div>
+        </div>
+      </div>
+    </div>
+    <div class="main">
+
+    <!-- ===== VUE : DASHBOARD ===== -->
+    <div class="view on" id="v-dash">
+      <div class="kpis">
+        <div class="kpi"><div class="l">Effectif actif</div><div class="v">24</div><div class="d"><b>+2</b> embauches ce trimestre</div></div>
+        <div class="kpi gold"><div class="l">Masse salariale · Juin</div><div class="v">78 431 000 <span style="font-size:13px;color:var(--gris)">GNF</span></div><div class="d">Coût employeur : <b class="mono">92 118 400</b></div></div>
+        <div class="kpi"><div class="l">Congés en attente</div><div class="v">3</div><div class="d">dont 1 &gt; 5 jours ouvrables</div></div>
+        <div class="kpi"><div class="l">Paie de juillet</div><div class="v" style="font-size:16px;padding-top:6px"><span class="bg bg-o">Brouillon — 24/24 bulletins</span></div><div class="d"><a class="link" href="#" onclick="go('paie');return false">Ouvrir le cycle de paie →</a></div></div>
+      </div>
+      <div class="grid2">
+        <div class="panel">
+          <div class="hd"><h3>Masse salariale — 6 derniers mois</h3><span class="sp"></span><span class="bg bg-v">Brut · GNF</span></div>
+          <div class="bd">
+            <div class="bars">
+              <div class="bar"><i style="height:62%"></i><small>Fév</small></div>
+              <div class="bar"><i style="height:64%"></i><small>Mar</small></div>
+              <div class="bar"><i style="height:63%"></i><small>Avr</small></div>
+              <div class="bar"><i style="height:70%"></i><small>Mai</small></div>
+              <div class="bar"><i style="height:72%"></i><small>Juin</small></div>
+              <div class="bar hl"><i style="height:74%"></i><small>Juil</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="hd"><h3>Alertes RH</h3><span class="sp"></span><span class="bg bg-r">4</span></div>
+          <div class="bd" style="padding-top:14px">
+            <div class="alert rg"><span class="ic">⚠</span><div><b>CDD — SYLLA Aboubacar</b> arrive à échéance le 31/07/2026 (19 jours).</div></div>
+            <div class="alert or"><span class="ic">🪪</span><div><b>Pièce d'identité — CAMARA Bountouraby</b> expire le 04/08/2026.</div></div>
+            <div class="alert or"><span class="ic">🕐</span><div><b>Période d'essai — DIALLO Fatoumata</b> à confirmer avant le 20/07.</div></div>
+            <div class="alert vt"><span class="ic">🎉</span><div><b>Ancienneté — BARRY Moussa</b> atteint 10 ans le 12/01/2026 : +2 j de congés.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:18px">
+        <div class="panel">
+          <div class="hd"><h3>Demandes de congés à traiter</h3><span class="sp"></span><a class="link" href="#" onclick="go('conges');return false">Tout voir →</a></div>
+          <table>
+            <tr><th>Salarié</th><th>Type</th><th>Période</th><th class="num">Jours</th><th>Statut</th><th></th></tr>
+            <tr><td><div class="emp"><span class="av g">BC</span><div><b>CAMARA Bountouraby</b><small>Formatrice · D.R.H</small></div></div></td><td>Congé annuel</td><td>04 – 15 août</td><td class="gnf mono">9</td><td><span class="bg bg-o">Attente RH</span></td><td><button class="btn btn-o btn-sm" onclick="om('mValiderConge')">Traiter</button></td></tr>
+            <tr><td><div class="emp"><span class="av g">OC</span><div><b>CONTE Ousmane</b><small>Contrôleur · Conformité</small></div></div></td><td>Permission</td><td>21 juillet</td><td class="gnf mono">1</td><td><span class="bg bg-b">Attente manager</span></td><td><button class="btn btn-o btn-sm" onclick="om('mValiderConge')">Traiter</button></td></tr>
+            <tr><td><div class="emp"><span class="av g">AT</span><div><b>TRAORE Aminata</b><small>Caissière · DAF</small></div></div></td><td>Congé maladie</td><td>10 – 11 juillet</td><td class="gnf mono">2</td><td><span class="bg bg-o">Attente RH</span></td><td><button class="btn btn-o btn-sm" onclick="om('mValiderConge')">Traiter</button></td></tr>
+          </table>
+        </div>
+        <div class="panel">
+          <div class="hd"><h3>Répartition de l'effectif</h3></div>
+          <div class="bd" style="display:flex;gap:22px;align-items:center">
+            <div class="donut"></div>
+            <div class="leg">
+              <div><i style="background:var(--vert)"></i><b>11</b> — DAF &amp; Comptabilité</div>
+              <div><i style="background:var(--or)"></i><b>6</b> — D.R.H &amp; Formation</div>
+              <div><i style="background:var(--bleu)"></i><b>4</b> — Conformité</div>
+              <div><i style="background:#B9CCC5"></i><b>3</b> — Direction générale</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : EMPLOYÉS ===== -->
+    <div class="view" id="v-employes">
+      <div class="tools">
+        <div class="srch" style="width:300px"><input placeholder="Nom, matricule, poste…"></div>
+        <button class="chip on">Tous · 24</button><button class="chip">Actifs · 22</button><button class="chip">CDD · 5</button><button class="chip">En essai · 2</button><button class="chip">Sortis · 2</button>
+        <span class="sp"></span>
+        <button class="btn btn-o btn-sm" onclick="toast('Export Excel généré — employes_2026-07.xlsx')">⇩ Exporter</button>
+        <button class="btn btn-o btn-sm" onclick="toast('Assistant d\'import CSV/Excel ouvert')">⇪ Importer</button>
+        <button class="btn btn-p btn-sm" onclick="om('mNouvelEmploye')">+ Nouvel employé</button>
+      </div>
+      <div class="panel">
+        <table>
+          <tr><th>Salarié</th><th>Matricule</th><th>Poste · Département</th><th>Contrat</th><th class="num">Salaire de base</th><th>Statut</th><th></th></tr>
+          <tr><td><div class="emp"><span class="av g">AF</span><div><b>FAYE Aboubacar</b><small>faye.a@garaya.gn</small></div></div></td><td class="mono">EMP-002</td><td>Comptable · DAF</td><td>CDI</td><td class="gnf">3 000 000</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm" onclick="go('fiche')">Ouvrir →</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">MT</span><div><b>TOLNO Michel</b><small>m.tolno@garaya.gn</small></div></div></td><td class="mono">EMP-004</td><td>D.R.H · D.R.H</td><td>CDI</td><td class="gnf">2 500 000</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm" onclick="go('fiche')">Ouvrir →</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">AT</span><div><b>TRAORE Aminata</b><small>a.traore@garaya.gn</small></div></div></td><td class="mono">EMP-005</td><td>Caissière · DAF</td><td>CDI</td><td class="gnf">2 000 000</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm" onclick="go('fiche')">Ouvrir →</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">AS</span><div><b>SYLLA Aboubacar</b><small>a.sylla@garaya.gn</small></div></div></td><td class="mono">EMP-006</td><td>Facturier · Conformité</td><td><span class="bg bg-r">CDD → 31/07</span></td><td class="gnf">1 500 000</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm" onclick="go('fiche')">Ouvrir →</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">BC</span><div><b>CAMARA Bountouraby</b><small>b.camara@garaya.gn</small></div></div></td><td class="mono">EMP-007</td><td>Formatrice · D.R.H</td><td>CDI</td><td class="gnf">1 600 000</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm" onclick="go('fiche')">Ouvrir →</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">MB</span><div><b>BARRY Moussa</b><small>m.barry@garaya.gn</small></div></div></td><td class="mono">EMP-008</td><td>Formateur · D.R.H</td><td>CDI</td><td class="gnf">1 800 000</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm" onclick="go('fiche')">Ouvrir →</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">GP</span><div><b>PLEGNEMOU Gassim</b><small>g.plegnemou@garaya.gn</small></div></div></td><td class="mono">EMP-009</td><td>R.A.F · DAF</td><td>CDI</td><td class="gnf">3 500 000</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm" onclick="go('fiche')">Ouvrir →</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">FD</span><div><b>DIALLO Fatoumata</b><small>f.diallo@garaya.gn</small></div></div></td><td class="mono">EMP-024</td><td>Assistante RH · D.R.H</td><td>CDI</td><td class="gnf">1 700 000</td><td><span class="bg bg-o">Période d'essai</span></td><td><button class="btn btn-g btn-sm" onclick="go('fiche')">Ouvrir →</button></td></tr>
+        </table>
+        <div class="pgn"><span>24 salariés — page 1 sur 3</span><div class="pgs"><button class="on">1</button><button>2</button><button>3</button><button>›</button></div></div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : FICHE EMPLOYÉ ===== -->
+    <div class="view" id="v-fiche">
+      <div style="display:flex;gap:18px;align-items:center;margin-bottom:20px">
+        <span class="av" style="width:56px;height:56px;font-size:19px">AF</span>
+        <div style="flex:1">
+          <h2 class="disp" style="font-size:22px;font-weight:800">FAYE Aboubacar <span class="bg bg-v" style="vertical-align:3px;margin-left:6px">Actif</span></h2>
+          <span class="crumb">Comptable · DAF · Matricule <b class="mono">EMP-002</b> · CDI depuis le 01/05/2016 — 10 ans et 2 mois d'ancienneté</span>
+        </div>
+        <button class="btn btn-o" onclick="om('mMouvement')">↕ Nouveau mouvement</button>
+        <button class="btn btn-o" onclick="om('mGenererDoc')">🗎 Générer un document</button>
+        <button class="btn btn-p" onclick="om('mModifEmploye')">✎ Modifier</button>
+      </div>
+      <div class="tabs">
+        <button class="on" onclick="tab(this,'ft1')">Identité</button>
+        <button onclick="tab(this,'ft2')">Contrat</button>
+        <button onclick="tab(this,'ft3')">Salaire &amp; primes</button>
+        <button onclick="tab(this,'ft4')">Congés</button>
+        <button onclick="tab(this,'ft5')">Documents</button>
+        <button onclick="tab(this,'ft6')">Historique</button>
+      </div>
+
+      <div class="ftab" id="ft1">
+        <div class="grid2">
+          <div class="panel"><div class="hd"><h3>État civil</h3></div><div class="bd fgrid">
+            <div><label>Civilité</label><div>M.</div></div><div><label>Nationalité</label><div>Guinéenne</div></div>
+            <div><label>Nom</label><div><b>FAYE</b></div></div><div><label>Prénom</label><div><b>Aboubacar</b></div></div>
+            <div><label>Naissance</label><div>14/03/1988 · Conakry</div></div><div><label>Situation</label><div>Marié · 3 enfants</div></div>
+            <div><label>N° Sécurité sociale</label><div class="mono">11905 1224</div></div><div><label>Pièce d'identité</label><div>CNI n° <span class="mono">C0482210</span> — exp. 09/2027</div></div>
+          </div></div>
+          <div class="panel"><div class="hd"><h3>Coordonnées &amp; urgence</h3></div><div class="bd fgrid">
+            <div class="w"><label>Adresse</label><div>Hafia, Commune de Ratoma, Conakry</div></div>
+            <div><label>Téléphone</label><div class="mono">628 44 12 09</div></div><div><label>Email</label><div>faye.a@garaya.gn</div></div>
+            <div class="w"><label>Contact d'urgence</label><div>FAYE Mariama (épouse) — <span class="mono">655 20 31 77</span></div></div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="ftab hidden" id="ft2">
+        <div class="grid2">
+          <div class="panel"><div class="hd"><h3>Contrat en cours</h3><span class="sp"></span><span class="bg bg-v">CDI</span></div><div class="bd fgrid">
+            <div><label>Date d'embauche</label><div>01/05/2016</div></div><div><label>Période d'essai</label><div>Validée le 01/08/2016</div></div>
+            <div><label>Catégorie</label><div>Employé</div></div><div><label>Qualification</label><div>BAC+3</div></div>
+            <div><label>Supérieur (N+1)</label><div>PLEGNEMOU Gassim — R.A.F</div></div><div><label>Horaire mensuel</label><div class="mono">173,33 h</div></div>
+          </div></div>
+          <div class="panel"><div class="hd"><h3>Banque &amp; paiement</h3></div><div class="bd fgrid">
+            <div><label>Mode</label><div>Virement bancaire</div></div><div><label>Banque</label><div>BIG — Banque Int. de Guinée</div></div>
+            <div class="w"><label>N° de compte</label><div class="mono">461452510189</div></div>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="ftab hidden" id="ft3">
+        <div class="grid2">
+          <div class="panel"><div class="hd"><h3>Rémunération mensuelle</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="om('mMouvement')">Modifier via mouvement</button></div><div class="bd">
+            <div class="stat-line"><span>Salaire de base</span><b class="gnf">3 000 000</b></div>
+            <div class="stat-line"><span>Prime d'ancienneté <span class="bg bg-g" style="margin-left:6px">auto</span></span><b class="gnf">120 000</b></div>
+            <div class="stat-line"><span>Prime de repas</span><b class="gnf">150 000</b></div>
+            <div class="stat-line"><span>Indemnité de logement <span class="bg bg-b" style="margin-left:6px">exonérée RTS</span></span><b class="gnf">150 000</b></div>
+            <div class="stat-line"><span>Indemnité de transport <span class="bg bg-b" style="margin-left:6px">exonérée RTS</span></span><b class="gnf">225 000</b></div>
+            <div class="stat-line"><span>Indemnité de cherté de vie <span class="bg bg-b" style="margin-left:6px">exonérée RTS</span></span><b class="gnf">100 000</b></div>
+            <div class="stat-line" style="border-top:2px solid var(--encre);margin-top:6px;padding-top:12px"><span><b>Brut mensuel théorique</b></span><b class="gnf" style="font-size:16px">3 745 000 GNF</b></div>
+          </div></div>
+          <div class="panel"><div class="hd"><h3>Retenues récurrentes</h3></div><div class="bd">
+            <div class="stat-line"><span>Prêt personnel <small style="color:var(--gris)">— 8/24 mensualités</small></span><b class="gnf" style="color:var(--rouge)">− 2 016 982</b></div>
+            <div style="margin:10px 0 16px"><div class="prog"><i style="width:33%"></i></div><small class="note">Reste à rembourser : <b class="mono">32 271 710 GNF</b></small></div>
+            <button class="btn btn-o btn-sm" onclick="toast('Formulaire d\'échéancier de prêt ouvert')">+ Ajouter une avance / un prêt</button>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="ftab hidden" id="ft4">
+        <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+          <div class="kpi"><div class="l">Droits acquis 2026</div><div class="v">17,5 j</div><div class="d">2,5 j/mois × 7 mois + <b>2 j</b> ancienneté (10 ans)</div></div>
+          <div class="kpi"><div class="l">Jours pris</div><div class="v">6 j</div><div class="d">dernier : 10 – 17 mars</div></div>
+          <div class="kpi gold"><div class="l">Solde disponible</div><div class="v">11,5 j</div><div class="d">+ report 2025 : <b>0 j</b></div></div>
+        </div>
+        <div class="panel"><div class="hd"><h3>Historique des absences</h3><span class="sp"></span><button class="btn btn-p btn-sm" onclick="om('mDemandeConge')">+ Nouvelle demande</button></div>
+          <table>
+            <tr><th>Type</th><th>Période</th><th class="num">Jours ouvr.</th><th>Statut</th><th>Validée par</th></tr>
+            <tr><td>Congé annuel</td><td>10 – 17 mars 2026</td><td class="gnf mono">6</td><td><span class="bg bg-v">Approuvée</span></td><td>G. Plegnemou → M. Tolno</td></tr>
+            <tr><td>Permission (décès)</td><td>22 janvier 2026</td><td class="gnf mono">1</td><td><span class="bg bg-v">Approuvée</span></td><td>M. Tolno</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="ftab hidden" id="ft5">
+        <div class="panel"><div class="hd"><h3>Documents du salarié</h3><span class="sp"></span><button class="btn btn-p btn-sm" onclick="om('mGenererDoc')">+ Générer</button></div>
+          <table>
+            <tr><th>Document</th><th>Période / objet</th><th>Généré le</th><th></th></tr>
+            <tr><td>🗎 Bulletin de paie</td><td>Juin 2026</td><td>30/06/2026</td><td><button class="btn btn-o btn-sm" onclick="om('mBulletin')">Aperçu</button> <button class="btn btn-g btn-sm" onclick="toast('Téléchargement du PDF…')">⇩ PDF</button></td></tr>
+            <tr><td>🗎 Bulletin de paie</td><td>Mai 2026</td><td>31/05/2026</td><td><button class="btn btn-o btn-sm" onclick="om('mBulletin')">Aperçu</button> <button class="btn btn-g btn-sm" onclick="toast('Téléchargement du PDF…')">⇩ PDF</button></td></tr>
+            <tr><td>📄 Attestation de travail</td><td>Demande banque</td><td>03/04/2026</td><td><button class="btn btn-g btn-sm" onclick="toast('Téléchargement du PDF…')">⇩ PDF</button></td></tr>
+            <tr><td>📄 Contrat de travail (CDI)</td><td>Embauche</td><td>01/05/2016</td><td><button class="btn btn-g btn-sm" onclick="toast('Téléchargement du PDF…')">⇩ PDF</button></td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="ftab hidden" id="ft6">
+        <div class="panel"><div class="hd"><h3>Historique de carrière (audit)</h3></div><div class="bd">
+          <div class="timeline">
+            <div class="tl gold"><small>01/06/2026 · par M. Tolno (RH)</small><b>Augmentation de salaire</b> — Salaire de base : <span class="mono">2 800 000 → 3 000 000 GNF</span>. Motif : révision annuelle.</div>
+            <div class="tl"><small>15/02/2024 · par M. Tolno (RH)</small><b>Prêt personnel accordé</b> — <span class="mono">48 407 566 GNF</span> sur 24 mois.</div>
+            <div class="tl"><small>01/03/2019 · par Direction</small><b>Promotion</b> — Aide-comptable → <b>Comptable</b>.</div>
+            <div class="tl"><small>01/05/2016 · système</small><b>Embauche</b> — CDI, période d'essai 3 mois.</div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : PAIE ===== -->
+    <div class="view" id="v-paie">
+      <div class="tools">
+        <select style="width:190px"><option>Juillet 2026</option><option>Juin 2026 — Clôturé</option><option>Mai 2026 — Clôturé</option></select>
+        <span class="bg bg-o">Brouillon</span>
+        <span class="note">Générée le 10/07 · 24 bulletins · aucune anomalie détectée</span>
+        <span class="sp"></span>
+        <button class="btn btn-o" onclick="om('mRecalcul')">↻ Recalculer tout</button>
+        <button class="btn btn-o" onclick="om('mJournal')">🗎 Journal de paie</button>
+        <button class="btn btn-or" onclick="om('mCloture')">🔒 Clôturer la période</button>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">Total brut</div><div class="v">79 214 000</div><div class="d">GNF · 24 salariés</div></div>
+        <div class="kpi"><div class="l">Cotisations salariales</div><div class="v">4 918 730</div><div class="d">CNSS 5 % + RTS</div></div>
+        <div class="kpi"><div class="l">Charges patronales</div><div class="v">15 872 410</div><div class="d">CNSS 18 % + VF 6 % + CFPA 1,5 %</div></div>
+        <div class="kpi gold"><div class="l">Net à payer</div><div class="v">72 278 288</div><div class="d">virements du 31/07</div></div>
+      </div>
+      <div class="panel">
+        <div class="hd"><h3>Bulletins — Juillet 2026</h3><span class="sp"></span><div class="srch" style="width:220px"><input placeholder="Filtrer…"></div></div>
+        <table>
+          <tr><th>Salarié</th><th class="num">Brut</th><th class="num">CNSS sal.</th><th class="num">RTS</th><th class="num">Retenues</th><th class="num">Net à payer</th><th>Statut</th><th></th></tr>
+          <tr><td><div class="emp"><span class="av g">AF</span><div><b>FAYE Aboubacar</b><small>Comptable</small></div></div></td><td class="gnf">3 745 000</td><td class="gnf">125 000</td><td class="gnf">99 750</td><td class="gnf" style="color:var(--rouge)">2 016 982</td><td class="gnf"><b>1 503 268</b></td><td><span class="bg bg-o">Brouillon</span></td><td><button class="btn btn-o btn-sm" onclick="om('mBulletin')">Bulletin</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">MT</span><div><b>TOLNO Michel</b><small>D.R.H</small></div></div></td><td class="gnf">3 355 000</td><td class="gnf">125 000</td><td class="gnf">81 000</td><td class="gnf">—</td><td class="gnf"><b>3 149 000</b></td><td><span class="bg bg-o">Brouillon</span></td><td><button class="btn btn-o btn-sm" onclick="om('mBulletin')">Bulletin</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">GP</span><div><b>PLEGNEMOU Gassim</b><small>R.A.F</small></div></div></td><td class="gnf">4 480 000</td><td class="gnf">125 000</td><td class="gnf">146 800</td><td class="gnf">—</td><td class="gnf"><b>4 208 200</b></td><td><span class="bg bg-o">Brouillon</span></td><td><button class="btn btn-o btn-sm" onclick="om('mBulletin')">Bulletin</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">AT</span><div><b>TRAORE Aminata</b><small>Caissière</small></div></div></td><td class="gnf">2 745 000</td><td class="gnf">125 000</td><td class="gnf">50 500</td><td class="gnf">—</td><td class="gnf"><b>2 569 500</b></td><td><span class="bg bg-o">Brouillon</span></td><td><button class="btn btn-o btn-sm" onclick="om('mBulletin')">Bulletin</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">AS</span><div><b>SYLLA Aboubacar</b><small>Facturier</small></div></div></td><td class="gnf">2 215 000</td><td class="gnf">110 750</td><td class="gnf">29 463</td><td class="gnf">—</td><td class="gnf"><b>2 074 788</b></td><td><span class="bg bg-o">Brouillon</span></td><td><button class="btn btn-o btn-sm" onclick="om('mBulletin')">Bulletin</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">BC</span><div><b>CAMARA Bountouraby</b><small>Formatrice</small></div></div></td><td class="gnf">2 389 000</td><td class="gnf">119 450</td><td class="gnf">35 778</td><td class="gnf">—</td><td class="gnf"><b>2 233 773</b></td><td><span class="bg bg-o">Brouillon</span></td><td><button class="btn btn-o btn-sm" onclick="om('mBulletin')">Bulletin</button></td></tr>
+        </table>
+        <div class="pgn"><span>24 bulletins — total net <b class="mono">72 278 288 GNF</b></span><div class="pgs"><button class="on">1</button><button>2</button><button>3</button><button>4</button></div></div>
+      </div>
+      <div class="grid2" style="margin-top:18px">
+        <div class="panel"><div class="hd"><h3>Déclarations à produire</h3></div>
+          <table>
+            <tr><td>🏛 État RTS mensuel — format eTax (DNI)</td><td class="gnf mono">1 245 730 GNF</td><td style="text-align:right"><button class="btn btn-o btn-sm" onclick="om('mDocsAdmin')">Générer</button></td></tr>
+            <tr><td>🏛 Déclaration CNSS mensuelle</td><td class="gnf mono">14 328 700 GNF</td><td style="text-align:right"><button class="btn btn-o btn-sm" onclick="om('mDocsAdmin')">Générer</button></td></tr>
+            <tr><td>🏦 Ordre de virement groupé</td><td class="gnf mono">72 278 288 GNF</td><td style="text-align:right"><button class="btn btn-o btn-sm" onclick="toast('Fichier de virements exporté')">Exporter</button></td></tr>
+          </table>
+        </div>
+        <div class="panel"><div class="hd"><h3>Cycle de la période</h3></div><div class="bd">
+          <div class="timeline">
+            <div class="tl"><small>10/07 · M. Tolno</small><b>Génération</b> — 24 bulletins calculés en brouillon.</div>
+            <div class="tl gold"><small>en attente</small><b>Validation</b> — contrôle des bulletins, recalcul possible.</div>
+            <div class="tl" style="opacity:.45"><small>—</small><b>Clôture</b> — montants figés, archivage, verrouillage rétroactif.</div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : CONGÉS ===== -->
+    <div class="view" id="v-conges">
+      <div class="tools">
+        <button class="chip on" onclick="ctab(this,'ct1')">À traiter · 3</button><button class="chip" onclick="ctab(this,'ct2')">Approuvées · 12</button><button class="chip" onclick="ctab(this,'ct3')">Refusées · 2</button><button class="chip" onclick="ctab(this,'ct4')">Planning</button>
+        <span class="sp"></span>
+        <button class="btn btn-p" onclick="om('mDemandeConge')">+ Nouvelle demande</button>
+      </div>
+      <div class="ctab" id="ct1">
+      <div class="panel" style="margin-bottom:18px">
+        <div class="hd"><h3>Demandes en attente</h3></div>
+        <table>
+          <tr><th>Salarié</th><th>Type</th><th>Période</th><th class="num">Jours ouvr.</th><th class="num">Solde après</th><th>Circuit</th><th></th></tr>
+          <tr><td><div class="emp"><span class="av g">BC</span><div><b>CAMARA Bountouraby</b><small>D.R.H</small></div></div></td><td>Congé annuel</td><td>04 – 15 août</td><td class="gnf mono">9</td><td class="gnf mono">3,5 j</td><td><span class="bg bg-v">Manager ✓</span> <span class="bg bg-o">RH…</span></td><td><button class="btn btn-p btn-sm" onclick="om('mValiderConge')">Traiter</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">OC</span><div><b>CONTE Ousmane</b><small>Conformité</small></div></div></td><td>Permission (mariage)</td><td>21 juillet</td><td class="gnf mono">1</td><td class="gnf mono">—</td><td><span class="bg bg-b">Manager…</span></td><td><button class="btn btn-p btn-sm" onclick="om('mValiderConge')">Traiter</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">AT</span><div><b>TRAORE Aminata</b><small>DAF</small></div></div></td><td>Congé maladie <span class="bg bg-g">certificat joint</span></td><td>10 – 11 juillet</td><td class="gnf mono">2</td><td class="gnf mono">n/a</td><td><span class="bg bg-v">Manager ✓</span> <span class="bg bg-o">RH…</span></td><td><button class="btn btn-p btn-sm" onclick="om('mValiderConge')">Traiter</button></td></tr>
+        </table>
+      </div>
+      </div>
+
+      <div class="ctab hidden" id="ct2">
+      <div class="panel">
+        <div class="hd"><h3>Demandes approuvées — 2026</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Export Excel des congés approuvés généré')">⇩ Exporter</button></div>
+        <table>
+          <tr><th>Salarié</th><th>Type</th><th>Période</th><th class="num">Jours ouvr.</th><th>Validée par (Manager → RH)</th><th>Le</th><th></th></tr>
+          <tr><td><div class="emp"><span class="av g">AF</span><div><b>FAYE Aboubacar</b><small>DAF</small></div></div></td><td>Congé annuel</td><td>10 – 17 mars</td><td class="gnf mono">6</td><td>G. Plegnemou → M. Tolno</td><td>02/03</td><td><button class="btn btn-g btn-sm" onclick="om('mGenererDoc')">Certificat</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">MB</span><div><b>BARRY Moussa</b><small>D.R.H</small></div></div></td><td>Permission (mariage)</td><td>21 juillet</td><td class="gnf mono">1</td><td>M. Tolno</td><td>08/07</td><td><button class="btn btn-g btn-sm" onclick="om('mGenererDoc')">Certificat</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">BC</span><div><b>CAMARA Bountouraby</b><small>D.R.H</small></div></div></td><td>Congé annuel</td><td>23 – 27 déc. 2025</td><td class="gnf mono">4</td><td>M. Barry → M. Tolno</td><td>10/12</td><td><button class="btn btn-g btn-sm" onclick="om('mGenererDoc')">Certificat</button></td></tr>
+          <tr><td><div class="emp"><span class="av g">GP</span><div><b>PLEGNEMOU Gassim</b><small>DAF</small></div></div></td><td>Congé annuel</td><td>05 – 16 janv.</td><td class="gnf mono">10</td><td>I. Sow → M. Tolno</td><td>18/12</td><td><button class="btn btn-g btn-sm" onclick="om('mGenererDoc')">Certificat</button></td></tr>
+        </table>
+        <div class="pgn"><span>12 demandes approuvées en 2026</span><div class="pgs"><button class="on">1</button><button>2</button></div></div>
+      </div>
+      </div>
+
+      <div class="ctab hidden" id="ct3">
+      <div class="panel">
+        <div class="hd"><h3>Demandes refusées — 2026</h3></div>
+        <table>
+          <tr><th>Salarié</th><th>Type</th><th>Période</th><th class="num">Jours</th><th>Refusée par</th><th>Motif</th></tr>
+          <tr><td><div class="emp"><span class="av g">AS</span><div><b>SYLLA Aboubacar</b><small>Conformité</small></div></div></td><td>Congé annuel</td><td>28/07 – 08/08</td><td class="gnf mono">9</td><td>M. Tolno (RH)</td><td>Fin de CDD le 31/07 — solde payé au solde de tout compte</td></tr>
+          <tr><td><div class="emp"><span class="av g">OC</span><div><b>CONTE Ousmane</b><small>Conformité</small></div></div></td><td>Congé annuel</td><td>02 – 06 juin</td><td class="gnf mono">5</td><td>G. Plegnemou (Manager)</td><td>Effectif insuffisant — inventaire semestriel</td></tr>
+        </table>
+      </div>
+      </div>
+
+      <div class="ctab hidden" id="ct4">
+      <div class="panel">
+        <div class="hd"><h3>Planning d'équipe — Juillet 2026 · D.R.H</h3><span class="sp"></span>
+          <span class="leg" style="display:flex;gap:14px"><span><i style="background:var(--vert)"></i>Congé annuel</span><span><i style="background:var(--rouge)"></i>Maladie</span><span><i style="background:var(--or)"></i>Permission</span></span>
+        </div>
+        <div class="bd">
+          <div class="wk">
+            <div></div><div class="hd7">L13</div><div class="hd7">M14</div><div class="hd7">M15</div><div class="hd7">J16</div><div class="hd7">V17</div><div class="hd7">S</div><div class="hd7">D</div><div class="hd7">L20</div><div class="hd7">M21</div><div class="hd7">M22</div><div class="hd7">J23</div><div class="hd7">V24</div><div class="hd7">S</div><div class="hd7">D</div>
+            <div class="nm">TOLNO Michel</div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy we"></div><div class="dy we"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy we"></div><div class="dy we"></div>
+            <div class="nm">CAMARA Bountouraby</div><div class="dy"></div><div class="dy"></div><div class="dy ca"></div><div class="dy ca"></div><div class="dy ca"></div><div class="dy we"></div><div class="dy we"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy we"></div><div class="dy we"></div>
+            <div class="nm">BARRY Moussa</div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy we"></div><div class="dy we"></div><div class="dy"></div><div class="dy pm"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy we"></div><div class="dy we"></div>
+            <div class="nm">DIALLO Fatoumata</div><div class="dy"></div><div class="dy cm"></div><div class="dy cm"></div><div class="dy"></div><div class="dy"></div><div class="dy we"></div><div class="dy we"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy"></div><div class="dy we"></div><div class="dy we"></div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : TEMPS ===== -->
+    <div class="view" id="v-temps">
+      <div class="tools">
+        <select style="width:190px"><option>Juillet 2026</option><option>Juin 2026</option></select>
+        <select style="width:210px"><option>Tous les départements</option><option>DAF</option><option>D.R.H</option><option>Conformité</option></select>
+        <span class="sp"></span>
+        <button class="btn btn-o" onclick="toast('Feuilles de temps validées et transmises à la paie')">✓ Valider et transmettre à la paie</button>
+      </div>
+      <div class="panel">
+        <div class="hd"><h3>Récapitulatif mensuel — heures &amp; majorations</h3><span class="sp"></span><span class="note">Base légale : 40 h/sem · 173,33 h/mois</span></div>
+        <table>
+          <tr><th>Salarié</th><th class="num">H. travaillées</th><th class="num">HS +25 %</th><th class="num">HS +50 %</th><th class="num">HS +100 % <small>(dim./fériés)</small></th><th class="num">Montant HS (GNF)</th><th>Statut</th></tr>
+          <tr><td><b>FAYE Aboubacar</b></td><td class="gnf">173,3</td><td class="gnf">—</td><td class="gnf">—</td><td class="gnf">—</td><td class="gnf">—</td><td><span class="bg bg-v">Validé</span></td></tr>
+          <tr><td><b>SYLLA Aboubacar</b></td><td class="gnf">181,3</td><td class="gnf">8,0</td><td class="gnf">—</td><td class="gnf">—</td><td class="gnf">86 540</td><td><span class="bg bg-v">Validé</span></td></tr>
+          <tr><td><b>CONTE Ousmane</b></td><td class="gnf">188,3</td><td class="gnf">8,0</td><td class="gnf">4,0</td><td class="gnf">3,0</td><td class="gnf">254 810</td><td><span class="bg bg-o">À valider</span></td></tr>
+          <tr><td><b>BARRY Moussa</b></td><td class="gnf">166,3</td><td class="gnf">—</td><td class="gnf">—</td><td class="gnf">—</td><td class="gnf">—</td><td><span class="bg bg-o">À valider</span></td></tr>
+        </table>
+      </div>
+      <div class="panel" style="margin-top:18px">
+        <div class="hd"><h3>Feuille de temps — CONTE Ousmane · semaine du 20 juillet</h3></div>
+        <table>
+          <tr><th>Jour</th><th>Arrivée</th><th>Départ</th><th class="num">Heures</th><th class="num">Dont sup.</th><th>Note</th></tr>
+          <tr><td>Lundi 20</td><td class="mono">08:00</td><td class="mono">17:00</td><td class="gnf">8,0</td><td class="gnf">—</td><td></td></tr>
+          <tr><td>Mardi 21</td><td class="mono">08:00</td><td class="mono">19:00</td><td class="gnf">10,0</td><td class="gnf" style="color:var(--vert)"><b>+2,0</b></td><td>Clôture trimestrielle</td></tr>
+          <tr><td>Mercredi 22</td><td class="mono">08:00</td><td class="mono">18:30</td><td class="gnf">9,5</td><td class="gnf" style="color:var(--vert)"><b>+1,5</b></td><td></td></tr>
+          <tr><td>Dimanche 26</td><td class="mono">09:00</td><td class="mono">12:00</td><td class="gnf">3,0</td><td class="gnf" style="color:var(--or)"><b>+3,0 (100 %)</b></td><td>Inventaire</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== VUE : DOCUMENTS ===== -->
+    <div class="view" id="v-docs">
+      <div class="panel" style="margin-bottom:18px;border-left:4px solid var(--or)">
+        <div class="hd"><h3>🏛 Documents administratifs — déclarations légales</h3><span class="sp"></span><button class="btn btn-or" onclick="om('mDocsAdmin')">Ouvrir le générateur</button></div>
+        <div class="bd" style="padding-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="bg bg-v">Registre du personnel (Inspection du Travail / CNSS)</span>
+          <span class="bg bg-v">Déclaration CNSS mensuelle</span>
+          <span class="bg bg-v">État RTS mensuel — format eTax (DNI)</span>
+          <span class="bg bg-v">État des salaires</span>
+          <span class="bg bg-v">Suivi des congés</span>
+          <span class="bg bg-v">Fiche individuelle</span>
+        </div>
+      </div>
+      <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi" style="cursor:pointer" onclick="om('mGenererDoc')"><div class="l">📄 Attestation de travail</div><div class="d" style="margin-top:8px">Générée en un clic, signée numériquement.</div><div style="margin-top:10px"><span class="link">Générer →</span></div></div>
+        <div class="kpi" style="cursor:pointer" onclick="om('mGenererDoc')"><div class="l">📜 Certificat de travail</div><div class="d" style="margin-top:8px">Pour les salariés sortis (art. Code du travail).</div><div style="margin-top:10px"><span class="link">Générer →</span></div></div>
+        <div class="kpi" style="cursor:pointer" onclick="om('mGenererDoc')"><div class="l">🌴 Certificat de congé</div><div class="d" style="margin-top:8px">À partir d'une demande approuvée.</div><div style="margin-top:10px"><span class="link">Générer →</span></div></div>
+        <div class="kpi" style="cursor:pointer" onclick="om('mGenererDoc')"><div class="l">🧾 Solde de tout compte</div><div class="d" style="margin-top:8px">Congés non pris, indemnités, préavis — calcul auto.</div><div style="margin-top:10px"><span class="link">Générer →</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="hd"><h3>Documents générés récemment</h3><span class="sp"></span><div class="srch" style="width:230px"><input placeholder="Rechercher…"></div></div>
+        <table>
+          <tr><th>Document</th><th>Salarié</th><th>Généré par</th><th>Date</th><th></th></tr>
+          <tr><td>🗎 Bulletins de paie (lot de 24)</td><td>Tous — Juin 2026</td><td>M. Tolno</td><td>30/06/2026</td><td><button class="btn btn-g btn-sm" onclick="toast('Archive ZIP téléchargée')">⇩ ZIP</button></td></tr>
+          <tr><td>📄 Attestation de travail</td><td>FAYE Aboubacar</td><td>M. Tolno</td><td>03/04/2026</td><td><button class="btn btn-g btn-sm" onclick="toast('Téléchargement du PDF…')">⇩ PDF</button></td></tr>
+          <tr><td>🧾 Solde de tout compte</td><td>KEITA Sékou (sorti)</td><td>M. Tolno</td><td>28/02/2026</td><td><button class="btn btn-g btn-sm" onclick="toast('Téléchargement du PDF…')">⇩ PDF</button></td></tr>
+          <tr><td>📜 Certificat de travail</td><td>KEITA Sékou (sorti)</td><td>M. Tolno</td><td>28/02/2026</td><td><button class="btn btn-g btn-sm" onclick="toast('Téléchargement du PDF…')">⇩ PDF</button></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== VUE : RAPPORTS ===== -->
+    <div class="view" id="v-rapports">
+      <div class="tools">
+        <button class="chip on">2026</button><button class="chip">2025</button>
+        <span class="sp"></span>
+        <button class="btn btn-o" onclick="toast('Export Excel du bilan social généré')">⇩ Bilan social Excel</button>
+        <button class="btn btn-o" onclick="toast('Connexion Power BI : lien de source de données copié')">◫ Source Power BI</button>
+      </div>
+      <div class="grid2">
+        <div class="panel"><div class="hd"><h3>Coût employeur par mois (GNF)</h3></div><div class="bd">
+          <div class="bars">
+            <div class="bar"><i style="height:58%"></i><small>Jan</small></div><div class="bar"><i style="height:60%"></i><small>Fév</small></div>
+            <div class="bar"><i style="height:61%"></i><small>Mar</small></div><div class="bar"><i style="height:60%"></i><small>Avr</small></div>
+            <div class="bar"><i style="height:66%"></i><small>Mai</small></div><div class="bar"><i style="height:69%"></i><small>Juin</small></div>
+            <div class="bar hl"><i style="height:71%"></i><small>Juil</small></div>
+          </div>
+        </div></div>
+        <div class="panel"><div class="hd"><h3>Indicateurs annuels</h3></div><div class="bd">
+          <div class="stat-line"><span>Taux d'absentéisme</span><b class="mono">2,4 %</b></div>
+          <div class="stat-line"><span>Turnover (12 mois glissants)</span><b class="mono">8,3 %</b></div>
+          <div class="stat-line"><span>Ancienneté moyenne</span><b class="mono">6,8 ans</b></div>
+          <div class="stat-line"><span>Âge moyen</span><b class="mono">34,2 ans</b></div>
+          <div class="stat-line"><span>Ratio femmes / hommes</span><b class="mono">42 % / 58 %</b></div>
+          <div class="stat-line"><span>Cumul RTS versé 2026</span><b class="gnf">7 316 480</b></div>
+          <div class="stat-line"><span>Cumul CNSS (sal. + pat.) 2026</span><b class="gnf">16 905 000</b></div>
+        </div></div>
+      </div>
+      <div class="panel" style="margin-top:18px">
+        <div class="hd"><h3>États prêts à imprimer</h3></div>
+        <table>
+          <tr><td>📊 État des effectifs par département</td><td><button class="btn btn-o btn-sm" onclick="toast('PDF généré')">Générer</button></td></tr>
+          <tr><td>📊 Registre de l'employeur (inspection du travail)</td><td><button class="btn btn-o btn-sm" onclick="toast('PDF généré')">Générer</button></td></tr>
+          <tr><td>📊 Synthèse masse salariale annuelle</td><td><button class="btn btn-o btn-sm" onclick="toast('PDF généré')">Générer</button></td></tr>
+          <tr><td>📊 État des contrats à échéance</td><td><button class="btn btn-o btn-sm" onclick="toast('PDF généré')">Générer</button></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== VUE : PARAMÉTRAGE ===== -->
+    <div class="view" id="v-params">
+      <div class="tabs">
+        <button class="on" onclick="tab(this,'pt1','ptab')">Entreprise</button>
+        <button onclick="tab(this,'pt2','ptab')">Barème RTS</button>
+        <button onclick="tab(this,'pt3','ptab')">Cotisations</button>
+        <button onclick="tab(this,'pt4','ptab')">Jours fériés</button>
+        <button onclick="tab(this,'pt5','ptab')">Primes &amp; absences</button>
+        <button onclick="tab(this,'pt6','ptab')">Utilisateurs</button>
+      </div>
+      <div class="ptab" id="pt1">
+        <div class="panel" style="max-width:760px"><div class="hd"><h3>Informations de l'entreprise</h3><span class="sp"></span><button class="btn btn-p btn-sm" onclick="toast('Modifications enregistrées')">Enregistrer</button></div>
+          <div class="bd fgrid">
+            <div class="fld"><label>Raison sociale</label><input value="GARAYA HOLDING"></div>
+            <div class="fld"><label>Forme juridique</label><select><option>SARL</option></select></div>
+            <div class="fld"><label>NIF</label><input class="mono" value="375106275"></div>
+            <div class="fld"><label>N° employeur CNSS</label><input class="mono" value="GH-2016-0448"></div>
+            <div class="fld w"><label>Adresse</label><input value="Kipé, Commune de Ratoma, Conakry"></div>
+            <div class="fld"><label>Convention collective</label><input value="Convention Collective du Travail"></div>
+            <div class="fld"><label>Banque de paie</label><input value="BIG — 461452510189"></div>
+          </div>
+        </div>
+      </div>
+      <div class="ptab hidden" id="pt2">
+        <div class="annot">Version en vigueur depuis le <b>01/01/2026</b> — modifiable sans redéploiement, historisée par date d'effet. Le barème erroné « 5 % jusqu'à 5 M » a été corrigé.</div>
+        <div class="panel" style="max-width:700px"><div class="hd"><h3>Barème RTS (retenue sur traitements et salaires)</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Nouvelle version de barème créée (brouillon)')">+ Nouvelle version</button></div>
+          <table>
+            <tr><th>Tranche</th><th class="num">Plancher (GNF)</th><th class="num">Plafond (GNF)</th><th class="num">Taux</th></tr>
+            <tr><td class="mono">1</td><td class="gnf">0</td><td class="gnf">2 000 000</td><td class="gnf"><b>5 %</b></td></tr>
+            <tr><td class="mono">2</td><td class="gnf">2 000 000</td><td class="gnf">5 000 000</td><td class="gnf"><b>8 %</b></td></tr>
+            <tr><td class="mono">3</td><td class="gnf">5 000 000</td><td class="gnf">10 000 000</td><td class="gnf"><b>10 %</b></td></tr>
+            <tr><td class="mono">4</td><td class="gnf">10 000 000</td><td class="gnf">∞</td><td class="gnf"><b>15 %</b></td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="ptab hidden" id="pt3">
+        <div class="panel" style="max-width:760px"><div class="hd"><h3>Cotisations sociales &amp; taxes</h3></div>
+          <table>
+            <tr><th>Cotisation</th><th class="num">Part salariale</th><th class="num">Part patronale</th><th>Base / plafond</th></tr>
+            <tr><td><b>CNSS</b></td><td class="gnf">5 %</td><td class="gnf">18 %</td><td>Brut plafonné à <span class="mono">2 500 000 GNF</span></td></tr>
+            <tr><td><b>Versement Forfaitaire</b></td><td class="gnf">—</td><td class="gnf">6 %</td><td>Brut hors indemnités exonérées</td></tr>
+            <tr><td><b>CFPA</b></td><td class="gnf">—</td><td class="gnf">1,5 %</td><td>Total brut</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="ptab hidden" id="pt4">
+        <div class="panel" style="max-width:640px"><div class="hd"><h3>Jours fériés 2026 — République de Guinée</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Formulaire d\'ajout de jour férié ouvert')">+ Ajouter</button></div>
+          <table>
+            <tr><td>1er janvier</td><td>Nouvel An</td><td><span class="bg bg-g">Fixe</span></td></tr>
+            <tr><td>20 mars</td><td>Aïd el-Fitr</td><td><span class="bg bg-b">Variable</span></td></tr>
+            <tr><td>1er mai</td><td>Fête du Travail</td><td><span class="bg bg-g">Fixe</span></td></tr>
+            <tr><td>27 mai</td><td>Aïd el-Kébir (Tabaski)</td><td><span class="bg bg-b">Variable</span></td></tr>
+            <tr><td>27 août</td><td>Journée des Martyrs</td><td><span class="bg bg-g">Fixe</span></tr>
+            <tr><td>2 octobre</td><td>Fête de l'Indépendance</td><td><span class="bg bg-g">Fixe</span></td></tr>
+            <tr><td>25 décembre</td><td>Noël</td><td><span class="bg bg-g">Fixe</span></td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="ptab hidden" id="pt5">
+        <div class="grid2">
+          <div class="panel"><div class="hd"><h3>Types de primes &amp; indemnités</h3><span class="sp"></span><button class="btn btn-o btn-sm" onclick="toast('Formulaire nouvelle prime ouvert')">+ Ajouter</button></div>
+            <table>
+              <tr><th>Libellé</th><th>RTS</th><th>CNSS</th></tr>
+              <tr><td>Prime d'ancienneté</td><td><span class="bg bg-v">Imposable</span></td><td><span class="bg bg-v">Soumise</span></td></tr>
+              <tr><td>Prime de repas</td><td><span class="bg bg-v">Imposable</span></td><td><span class="bg bg-v">Soumise</span></td></tr>
+              <tr><td>Indemnité de logement</td><td><span class="bg bg-b">Exonérée</span></td><td><span class="bg bg-b">Exonérée</span></td></tr>
+              <tr><td>Indemnité de transport</td><td><span class="bg bg-b">Exonérée</span></td><td><span class="bg bg-b">Exonérée</span></td></tr>
+              <tr><td>Indemnité cherté de vie</td><td><span class="bg bg-b">Exonérée</span></td><td><span class="bg bg-b">Exonérée</span></td></tr>
+            </table>
+          </div>
+          <div class="panel"><div class="hd"><h3>Types d'absences</h3></div>
+            <table>
+              <tr><th>Type</th><th>Droit</th><th>Rémunéré</th></tr>
+              <tr><td>Congé annuel</td><td>2,5 j ouvr./mois</td><td><span class="bg bg-v">Oui</span></td></tr>
+              <tr><td>Congé maternité</td><td>98 j (14 sem.)</td><td><span class="bg bg-v">Oui</span></td></tr>
+              <tr><td>Permission exceptionnelle</td><td>selon événement</td><td><span class="bg bg-v">Oui</span></td></tr>
+              <tr><td>Absence non justifiée</td><td>—</td><td><span class="bg bg-r">Non — déduite</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="ptab hidden" id="pt6">
+        <div class="panel"><div class="hd"><h3>Utilisateurs de l'espace</h3><span class="sp"></span><button class="btn btn-p btn-sm" onclick="om('mInviter')">+ Inviter un utilisateur</button></div>
+          <table>
+            <tr><th>Utilisateur</th><th>Rôle</th><th>Dernière connexion</th><th>Statut</th><th></th></tr>
+            <tr><td><div class="emp"><span class="av">MT</span><div><b>Michel TOLNO</b><small>m.tolno@garaya.gn</small></div></div></td><td><span class="bg bg-v">RH</span></td><td>Aujourd'hui, 09:12</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm">Gérer</button></td></tr>
+            <tr><td><div class="emp"><span class="av g">DG</span><div><b>Ibrahima SOW</b><small>dg@garaya.gn</small></div></div></td><td><span class="bg bg-b">Direction</span></td><td>Hier, 18:40</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm">Gérer</button></td></tr>
+            <tr><td><div class="emp"><span class="av g">GP</span><div><b>Gassim PLEGNEMOU</b><small>g.plegnemou@garaya.gn</small></div></div></td><td><span class="bg bg-o">Manager · DAF</span></td><td>Aujourd'hui, 08:02</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm">Gérer</button></td></tr>
+            <tr><td><div class="emp"><span class="av g">AF</span><div><b>Aboubacar FAYE</b><small>faye.a@garaya.gn</small></div></div></td><td><span class="bg bg-g">Comptable</span></td><td>07/07, 16:55</td><td><span class="bg bg-v">Actif</span></td><td><button class="btn btn-g btn-sm">Gérer</button></td></tr>
+            <tr><td><div class="emp"><span class="av g">?</span><div><b>c.bah@garaya.gn</b><small>invitation envoyée le 09/07</small></div></div></td><td><span class="bg bg-g">Employé</span></td><td>—</td><td><span class="bg bg-o">En attente</span></td><td><button class="btn btn-g btn-sm" onclick="toast('Invitation renvoyée à c.bah@garaya.gn')">Renvoyer</button></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VUE : ABONNEMENT ===== -->
+    <div class="view" id="v-fact">
+      <div class="alert or" style="max-width:860px"><span class="ic">◈</span><div><b>Essai gratuit — 12 jours restants.</b> Choisissez un plan avant le 24/07/2026 pour conserver l'accès complet. Vos données sont conservées dans tous les cas.</div></div>
+      <div class="plans" style="max-width:980px;margin-top:16px">
+        <div class="plan">
+          <h4>Starter</h4><div class="px">450 000 <small>GNF / mois</small></div>
+          <p class="note">Jusqu'à 15 salariés</p>
+          <ul><li>Personnel, paie, congés</li><li>Bulletins &amp; documents PDF</li><li>3 comptes utilisateurs</li></ul>
+          <button class="btn btn-o" style="width:100%;justify-content:center" onclick="om('mPlan')">Choisir Starter</button>
+        </div>
+        <div class="plan hl">
+          <span class="tag">Recommandé</span>
+          <h4>Business</h4><div class="px">950 000 <small>GNF / mois</small></div>
+          <p class="note">Jusqu'à 50 salariés</p>
+          <ul><li>Tout Starter, plus :</li><li>Temps &amp; heures supplémentaires</li><li>Portail employé libre-service</li><li>Utilisateurs illimités · rapports avancés</li></ul>
+          <button class="btn btn-p" style="width:100%;justify-content:center" onclick="om('mPlan')">Choisir Business</button>
+        </div>
+        <div class="plan">
+          <h4>Cabinet</h4><div class="px">Sur devis</div>
+          <p class="note">Cabinets comptables multi-dossiers</p>
+          <ul><li>Plusieurs entreprises, un compte</li><li>Facturation consolidée</li><li>Accompagnement dédié</li></ul>
+          <button class="btn btn-o" style="width:100%;justify-content:center" onclick="toast('Demande envoyée — nous vous recontactons sous 24 h')">Nous contacter</button>
+        </div>
+      </div>
+      <div class="panel" style="max-width:980px;margin-top:20px"><div class="hd"><h3>Factures</h3></div>
+        <table>
+          <tr><th>N°</th><th>Période</th><th class="num">Montant</th><th>Statut</th><th></th></tr>
+          <tr><td class="mono">—</td><td>Essai gratuit (24/06 → 24/07)</td><td class="gnf">0</td><td><span class="bg bg-v">Actif</span></td><td></td></tr>
+        </table>
+      </div>
+    </div>
+
+    </div><!-- /main -->
+  </div>
+</div><!-- /appShell -->
+
+<!-- ======= PORTAIL EMPLOYÉ ======= -->
+<section class="full hidden" id="v-portail">
+  <div class="portail-top"><div class="in">
+    <span class="logo" style="font-size:16px">Nex<b>'</b>SIRH <span style="opacity:.7;font-weight:400;font-size:12px">· Mon espace</span></span>
+    <nav>
+      <button class="on" onclick="ptab(this,'po1')">Accueil</button>
+      <button onclick="ptab(this,'po2')">Mes bulletins</button>
+      <button onclick="ptab(this,'po3')">Mes congés</button>
+    </nav>
+    <span style="flex:1"></span>
+    <div class="pmenu" id="pmPort">
+      <button class="pchip" style="border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.08)" onclick="tgP('pmPort')"><span class="av g">BC</span><span class="pinfo"><b style="color:#fff">Bountouraby CAMARA</b><small style="color:#A9CCC0">Formatrice</small></span><span class="chev" style="color:#A9CCC0">▾</span></button>
+      <div class="pdrop">
+        <div class="ph"><span class="av g" style="width:40px;height:40px;font-size:14px">BC</span><div><b>Bountouraby CAMARA</b><small>b.camara@garaya.gn</small><small><span class="bg bg-g" style="margin-top:3px">Rôle : Employé (portail)</span></small></div></div>
+        <a onclick="tgP('pmPort');om('mProfilEmp')"><span class="pi">👤</span> Mon profil</a>
+        <a onclick="tgP('pmPort');om('mMdp')"><span class="pi">🔑</span> Modifier le mot de passe</a>
+        <a onclick="tgP('pmPort');om('mNotifs')"><span class="pi">🔔</span> Préférences de notifications</a>
+        <div class="dv"></div>
+        <a onclick="tgP('pmPort');toast('Guide du portail employé ouvert 📖')"><span class="pi">❓</span> Aide</a>
+        <div class="dv"></div>
+        <a class="dgr" onclick="tgP('pmPort');go('login');toast('Vous êtes déconnecté(e) — à bientôt 👋')"><span class="pi">⎋</span> Se déconnecter</a>
+      </div>
+    </div>
+  </div></div>
+  <div class="hero-emp"><h2>Bonjour Bountouraby 🌞</h2><p>Formatrice · D.R.H · GARAYA HOLDING — Solde de congés : <b class="mono" style="color:var(--or)">12,5 jours</b></p></div>
+  <div class="main" style="max-width:1000px">
+    <div class="potab" id="po1">
+      <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi gold"><div class="l">Dernier net perçu · Juin</div><div class="v">2 233 773 <span style="font-size:12px;color:var(--gris)">GNF</span></div><div class="d"><a class="link" href="#" onclick="om('mBulletin');return false">Voir le bulletin →</a></div></div>
+        <div class="kpi"><div class="l">Solde de congés</div><div class="v">12,5 j</div><div class="d">demande du 04–15 août : <span class="bg bg-o">en validation RH</span></div></div>
+        <div class="kpi"><div class="l">Ancienneté</div><div class="v">9,6 ans</div><div class="d">+2 j de congés bonus / an</div></div>
+      </div>
+      <div class="panel"><div class="hd"><h3>Actualité</h3></div><div class="bd">
+        <div class="alert vt"><span class="ic">✓</span><div>Votre demande de congé du <b>04 au 15 août</b> a été approuvée par votre manager. Validation RH en cours.</div></div>
+        <div class="alert or"><span class="ic">🗎</span><div>Votre bulletin de <b>juin 2026</b> est disponible au téléchargement.</div></div>
+      </div></div>
+    </div>
+    <div class="potab hidden" id="po2">
+      <div class="panel"><div class="hd"><h3>Mes bulletins de paie</h3></div>
+        <table>
+          <tr><th>Période</th><th class="num">Brut</th><th class="num">Net perçu</th><th></th></tr>
+          <tr><td>Juin 2026</td><td class="gnf">2 389 000</td><td class="gnf"><b>2 233 773</b></td><td><button class="btn btn-o btn-sm" onclick="om('mBulletin')">Aperçu</button> <button class="btn btn-g btn-sm" onclick="toast('Téléchargement du PDF…')">⇩ PDF</button></td></tr>
+          <tr><td>Mai 2026</td><td class="gnf">2 389 000</td><td class="gnf"><b>2 233 773</b></td><td><button class="btn btn-o btn-sm" onclick="om('mBulletin')">Aperçu</button> <button class="btn btn-g btn-sm" onclick="toast('Téléchargement du PDF…')">⇩ PDF</button></td></tr>
+          <tr><td>Avril 2026</td><td class="gnf">2 389 000</td><td class="gnf"><b>2 233 773</b></td><td><button class="btn btn-o btn-sm" onclick="om('mBulletin')">Aperçu</button> <button class="btn btn-g btn-sm" onclick="toast('Téléchargement du PDF…')">⇩ PDF</button></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="potab hidden" id="po3">
+      <div class="tools"><span class="note">Solde disponible : <b class="mono">12,5 jours ouvrables</b></span><span class="sp"></span><button class="btn btn-p" onclick="om('mDemandeConge')">+ Demander un congé</button></div>
+      <div class="panel">
+        <table>
+          <tr><th>Type</th><th>Période</th><th class="num">Jours</th><th>Statut</th></tr>
+          <tr><td>Congé annuel</td><td>04 – 15 août 2026</td><td class="gnf mono">9</td><td><span class="bg bg-o">Validation RH en cours</span></td></tr>
+          <tr><td>Congé annuel</td><td>23 – 27 décembre 2025</td><td class="gnf mono">4</td><td><span class="bg bg-v">Approuvée</span></td></tr>
+          <tr><td>Permission (naissance)</td><td>02 octobre 2025</td><td class="gnf mono">1</td><td><span class="bg bg-v">Approuvée</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======= MODALES ======= -->
+
+<!-- Modale : Nouvel employé (assistant multi-étapes) -->
+<div class="ovl" id="mNouvelEmploye">
+  <div class="mdl lg">
+    <div class="mh"><div><h3>Nouvel employé</h3><p>Étape 1 sur 6 — Identité · le matricule <b class="mono">EMP-025</b> sera attribué automatiquement.</p></div><button class="x" onclick="cm('mNouvelEmploye')">✕</button></div>
+    <div class="mb">
+      <div class="steps"><span class="on"></span><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="fgrid">
+        <div class="fld"><label>Civilité</label><select><option>M.</option><option>Mme</option><option>Mlle</option></select></div>
+        <div class="fld"><label>Nationalité</label><input value="Guinéenne"></div>
+        <div class="fld"><label>Nom *</label><input placeholder="EN MAJUSCULES"></div>
+        <div class="fld"><label>Prénom *</label><input placeholder="Première lettre majuscule"></div>
+        <div class="fld"><label>Date de naissance *</label><input type="date" value="1995-04-12"></div>
+        <div class="fld"><label>Lieu de naissance</label><input placeholder="Ville"></div>
+        <div class="fld"><label>Situation matrimoniale</label><select><option>Célibataire</option><option>Marié(e)</option><option>Divorcé(e)</option><option>Veuf(ve)</option></select></div>
+        <div class="fld"><label>Enfants à charge</label><input type="number" value="0"></div>
+      </div>
+      <div class="alert or" style="margin-top:6px"><span class="ic">ℹ</span><div>Contrôle automatique : l'âge doit être <b>≥ 16 ans</b> (Code du travail guinéen). Un CDD ne pourra pas dépasser <b>24 mois</b>.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mNouvelEmploye')">Annuler</button><button class="btn btn-o" disabled style="opacity:.45">← Précédent</button><button class="btn btn-p" onclick="toast('Étape 2 — Coordonnées')">Suivant : Coordonnées →</button></div>
+  </div>
+</div>
+
+<!-- Modale : Aperçu du bulletin -->
+<div class="ovl" id="mBulletin">
+  <div class="mdl lg">
+    <div class="mh"><div><h3>Bulletin de paie — Aperçu</h3><p>FAYE Aboubacar · Juin 2026 · période du 01/06 au 30/06</p></div><button class="x" onclick="cm('mBulletin')">✕</button></div>
+    <div class="mb bltn">
+      <div class="bh">
+        <div><h4>GARAYA HOLDING</h4><small>Kipé, Ratoma, Conakry · NIF 375106275<br>Convention Collective du Travail</small></div>
+        <div style="text-align:right"><b>FAYE Aboubacar</b><br><small>Comptable · DAF · Mat. <span class="mono">EMP-002</span><br>N° CNSS <span class="mono">11905 1224</span> · Ancienneté 10 ans 1 mois</small></div>
+      </div>
+      <table>
+        <tr><th>Désignation</th><th class="num">Base</th><th class="num">Taux sal.</th><th class="num">Gain</th><th class="num">Retenue sal.</th><th class="num">Part patronale</th></tr>
+        <tr><td>Salaire de base</td><td class="gnf">173,33 h</td><td class="gnf"></td><td class="gnf">3 000 000</td><td class="gnf"></td><td class="gnf"></td></tr>
+        <tr><td>Prime d'ancienneté</td><td class="gnf"></td><td class="gnf"></td><td class="gnf">120 000</td><td class="gnf"></td><td class="gnf"></td></tr>
+        <tr><td>Prime de repas</td><td class="gnf"></td><td class="gnf"></td><td class="gnf">150 000</td><td class="gnf"></td><td class="gnf"></td></tr>
+        <tr><td>Indemnité de logement</td><td class="gnf"></td><td class="gnf"></td><td class="gnf">150 000</td><td class="gnf"></td><td class="gnf"></td></tr>
+        <tr><td>Indemnité de transport</td><td class="gnf"></td><td class="gnf"></td><td class="gnf">225 000</td><td class="gnf"></td><td class="gnf"></td></tr>
+        <tr><td>Indemnité de cherté de vie</td><td class="gnf"></td><td class="gnf"></td><td class="gnf">100 000</td><td class="gnf"></td><td class="gnf"></td></tr>
+        <tr class="tot"><td><b>Total brut</b></td><td></td><td></td><td class="gnf"><b>3 745 000</b></td><td></td><td></td></tr>
+        <tr><td>Cotisation CNSS</td><td class="gnf">2 500 000</td><td class="gnf">5 %</td><td class="gnf"></td><td class="gnf">125 000</td><td class="gnf">450 000 <small>(18 %)</small></td></tr>
+        <tr><td>RTS (barème progressif)</td><td class="gnf">1 995 000</td><td class="gnf">5 %</td><td class="gnf"></td><td class="gnf">99 750</td><td class="gnf"></td></tr>
+        <tr><td>Versement forfaitaire</td><td class="gnf">3 595 000</td><td class="gnf"></td><td class="gnf"></td><td class="gnf"></td><td class="gnf">215 700 <small>(6 %)</small></td></tr>
+        <tr><td>CFPA</td><td class="gnf">3 745 000</td><td class="gnf"></td><td class="gnf"></td><td class="gnf"></td><td class="gnf">56 175 <small>(1,5 %)</small></td></tr>
+        <tr class="tot"><td><b>Total cotisations</b></td><td></td><td></td><td></td><td class="gnf"><b>224 750</b></td><td class="gnf"><b>721 875</b></td></tr>
+        <tr><td>Prêt personnel <small>(mensualité 8/24)</small></td><td class="gnf"></td><td class="gnf"></td><td class="gnf"></td><td class="gnf">2 016 982</td><td class="gnf"></td></tr>
+        <tr class="net"><td><b>NET À PAYER — virement du 30/06/2026</b></td><td></td><td></td><td></td><td></td><td class="gnf" style="text-align:right"><b>1 503 268 GNF</b></td></tr>
+      </table>
+      <p class="note" style="margin-top:10px">Cumuls annuels — Brut : <span class="mono">22 470 000</span> · CNSS sal. : <span class="mono">750 000</span> · RTS : <span class="mono">598 500</span> · Net perçu : <span class="mono">15 546 268</span> — Conservez ce bulletin sans limitation de durée.</p>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mBulletin')">Fermer</button><button class="btn btn-o" onclick="toast('Bulletin envoyé par email au salarié ✉')">✉ Envoyer au salarié</button><button class="btn btn-p" onclick="toast('Téléchargement du PDF…')">⇩ Télécharger le PDF</button></div>
+  </div>
+</div>
+
+<!-- Modale : Clôture de la paie -->
+<div class="ovl" id="mCloture">
+  <div class="mdl sm">
+    <div class="mh"><div class="ic-warn">🔒</div><div><h3>Clôturer la paie de juillet 2026 ?</h3><p>Cette action est définitive.</p></div><button class="x" onclick="cm('mCloture')">✕</button></div>
+    <div class="mb">
+      <div class="stat-line"><span>Bulletins concernés</span><b class="mono">24</b></div>
+      <div class="stat-line"><span>Net total à virer</span><b class="gnf">72 278 288 GNF</b></div>
+      <div class="alert or" style="margin-top:14px"><span class="ic">⚠</span><div>Après clôture : montants <b>figés et archivés</b>, aucun recalcul ni suppression possible. Toute correction passera par une <b>régularisation sur le mois suivant</b>.</div></div>
+      <div class="fld" style="margin-top:14px"><label>Tapez « CLOTURER » pour confirmer</label><input placeholder="CLOTURER" class="mono"></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mCloture')">Annuler</button><button class="btn btn-or" onclick="cm('mCloture');toast('Paie de juillet 2026 clôturée — 24 bulletins archivés 🔒')">🔒 Clôturer définitivement</button></div>
+  </div>
+</div>
+
+<!-- Modale : Recalcul -->
+<div class="ovl" id="mRecalcul">
+  <div class="mdl sm">
+    <div class="mh"><div class="ic-warn">↻</div><div><h3>Recalculer les 24 bulletins ?</h3><p>Période en brouillon — recalcul autorisé.</p></div><button class="x" onclick="cm('mRecalcul')">✕</button></div>
+    <div class="mb"><p style="font-size:13.5px">Les bulletins seront régénérés à partir des fiches salariés, feuilles de temps validées et barèmes en vigueur. Les saisies manuelles (avances, autres retenues) sont <b>conservées</b>.</p></div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mRecalcul')">Annuler</button><button class="btn btn-p" onclick="cm('mRecalcul');toast('Recalcul terminé — 24 bulletins mis à jour, 0 anomalie')">↻ Lancer le recalcul</button></div>
+  </div>
+</div>
+
+<!-- Modale : Demande de congé -->
+<div class="ovl" id="mDemandeConge">
+  <div class="mdl">
+    <div class="mh"><div><h3>Nouvelle demande de congé</h3><p>Le nombre de jours ouvrables est calculé automatiquement (week-ends et fériés exclus).</p></div><button class="x" onclick="cm('mDemandeConge')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid">
+        <div class="fld w"><label>Salarié</label><select><option>CAMARA Bountouraby — Formatrice (solde : 12,5 j)</option><option>FAYE Aboubacar — Comptable (solde : 11,5 j)</option></select></div>
+        <div class="fld"><label>Type d'absence</label><select><option>Congé annuel</option><option>Congé maladie</option><option>Congé maternité</option><option>Permission exceptionnelle</option><option>Absence non justifiée</option></select></div>
+        <div class="fld"><label>Justificatif (optionnel)</label><input type="file"></div>
+        <div class="fld"><label>Du</label><input type="date" value="2026-08-04"></div>
+        <div class="fld"><label>Au (inclus)</label><input type="date" value="2026-08-15"></div>
+        <div class="fld w"><label>Commentaire</label><textarea rows="2" placeholder="Motif ou précision…"></textarea></div>
+      </div>
+      <div class="alert vt"><span class="ic">🧮</span><div><b>9 jours ouvrables</b> décomptés (2 week-ends exclus). Solde après congé : <b class="mono">3,5 j</b>. Circuit : Manager (M. Tolno) → RH.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mDemandeConge')">Annuler</button><button class="btn btn-p" onclick="cm('mDemandeConge');toast('Demande envoyée — notification au manager ✉')">Envoyer la demande</button></div>
+  </div>
+</div>
+
+<!-- Modale : Validation de congé -->
+<div class="ovl" id="mValiderConge">
+  <div class="mdl">
+    <div class="mh"><div><h3>Traiter la demande de congé</h3><p>CAMARA Bountouraby · Congé annuel · 04 – 15 août (9 j ouvrables)</p></div><button class="x" onclick="cm('mValiderConge')">✕</button></div>
+    <div class="mb">
+      <div class="stat-line"><span>Validation manager</span><b><span class="bg bg-v">Approuvée — M. Barry, 09/07</span></b></div>
+      <div class="stat-line"><span>Solde actuel / après congé</span><b class="mono">12,5 j → 3,5 j</b></div>
+      <div class="stat-line"><span>Chevauchement d'équipe</span><b><span class="bg bg-o">1 autre absence D.R.H du 04 au 07/08</span></b></div>
+      <div class="fld" style="margin-top:16px"><label>Motif (obligatoire en cas de refus)</label><textarea rows="2" placeholder="Ex. : effectif insuffisant sur la période…"></textarea></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mValiderConge')">Fermer</button><button class="btn btn-d" onclick="cm('mValiderConge');toast('Demande refusée — salarié et manager notifiés')">Refuser</button><button class="btn btn-p" onclick="cm('mValiderConge');toast('Congé approuvé ✓ — solde mis à jour : 3,5 j')">✓ Approuver (validation RH)</button></div>
+  </div>
+</div>
+
+<!-- Modale : Générer un document -->
+<div class="ovl" id="mGenererDoc">
+  <div class="mdl">
+    <div class="mh"><div><h3>Générer un document officiel</h3><p>Le PDF est pré-rempli avec les données du salarié et archivé automatiquement.</p></div><button class="x" onclick="cm('mGenererDoc')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid">
+        <div class="fld"><label>Type de document</label><select><option>Attestation de travail</option><option>Certificat de travail</option><option>Certificat de congé</option><option>Solde de tout compte</option><option>Contrat de travail (CDI/CDD)</option></select></div>
+        <div class="fld"><label>Salarié</label><select><option>FAYE Aboubacar — EMP-002</option><option>TOLNO Michel — EMP-004</option><option>CAMARA Bountouraby — EMP-007</option></select></div>
+        <div class="fld"><label>Signataire</label><select><option>M. Ibrahima SOW — Directeur Général</option><option>M. Michel TOLNO — D.R.H</option></select></div>
+        <div class="fld"><label>Langue</label><select><option>Français</option></select></div>
+        <div class="fld w"><label>Mention particulière (optionnel)</label><input placeholder="Ex. : document destiné à la BIG pour dossier de crédit"></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mGenererDoc')">Annuler</button><button class="btn btn-o" onclick="toast('Aperçu du document ouvert')">👁 Aperçu</button><button class="btn btn-p" onclick="cm('mGenererDoc');toast('Attestation générée et archivée 🗎')">Générer le PDF</button></div>
+  </div>
+</div>
+
+<!-- Modale : Inviter un utilisateur -->
+<div class="ovl" id="mInviter">
+  <div class="mdl">
+    <div class="mh"><div><h3>Inviter un utilisateur</h3><p>Il recevra un email pour créer son mot de passe.</p></div><button class="x" onclick="cm('mInviter')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid">
+        <div class="fld w"><label>Adresse email</label><input type="email" placeholder="prenom.nom@garaya.gn"></div>
+        <div class="fld"><label>Rôle</label><select><option>Employé (portail)</option><option>Manager</option><option>RH</option><option>Comptable</option><option>Direction (lecture)</option><option>Administrateur</option></select></div>
+        <div class="fld"><label>Lier à la fiche salarié</label><select><option>— Aucune —</option><option>BAH Cellou — EMP-011</option></select></div>
+      </div>
+      <div class="alert vt"><span class="ic">🛡</span><div><b>Rappel des droits :</b> un Manager ne voit que son équipe et jamais les salaires ; un Employé ne voit que ses propres bulletins et congés.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mInviter')">Annuler</button><button class="btn btn-p" onclick="cm('mInviter');toast('Invitation envoyée ✉')">Envoyer l'invitation</button></div>
+  </div>
+</div>
+
+<!-- Modale : Nouveau mouvement -->
+<div class="ovl" id="mMouvement">
+  <div class="mdl">
+    <div class="mh"><div><h3>Nouveau mouvement de carrière</h3><p>FAYE Aboubacar — tracé dans l'historique d'audit.</p></div><button class="x" onclick="cm('mMouvement')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid">
+        <div class="fld"><label>Type de mouvement</label><select><option>Augmentation de salaire</option><option>Promotion / changement de poste</option><option>Mutation de département</option><option>Suspension</option><option>Départ (démission, licenciement, fin CDD…)</option></select></div>
+        <div class="fld"><label>Date d'effet</label><input type="date" value="2026-08-01"></div>
+        <div class="fld"><label>Salaire actuel</label><input class="mono" value="3 000 000 GNF" disabled style="background:var(--menthe2)"></div>
+        <div class="fld"><label>Nouveau salaire de base</label><input class="mono" placeholder="3 200 000"></div>
+        <div class="fld w"><label>Motif</label><textarea rows="2" placeholder="Ex. : révision annuelle, résultats 2025…"></textarea></div>
+      </div>
+      <div class="alert or"><span class="ic">ℹ</span><div>Le nouveau salaire s'appliquera à partir de la <b>paie d'août 2026</b>. La paie de juillet (brouillon) n'est pas modifiée.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mMouvement')">Annuler</button><button class="btn btn-p" onclick="cm('mMouvement');toast('Mouvement enregistré — historique mis à jour')">Enregistrer le mouvement</button></div>
+  </div>
+</div>
+
+<!-- Modale : Changement de plan -->
+<div class="ovl" id="mPlan">
+  <div class="mdl sm">
+    <div class="mh"><div><h3>Passer au plan Business</h3><p>950 000 GNF / mois · jusqu'à 50 salariés</p></div><button class="x" onclick="cm('mPlan')">✕</button></div>
+    <div class="mb">
+      <div class="stat-line"><span>Facturation</span><b>Mensuelle, sans engagement</b></div>
+      <div class="stat-line"><span>Premier prélèvement</span><b>24/07/2026 (fin d'essai)</b></div>
+      <div class="fld" style="margin-top:14px"><label>Moyen de paiement</label><select><option>💳 Carte bancaire (Visa / Mastercard)</option><option>📱 Orange Money — bientôt disponible</option><option>📱 MTN MoMo — bientôt disponible</option><option>🏦 Virement bancaire (activation manuelle)</option></select></div>
+      <div class="fld"><label>Numéro de carte</label><input class="mono" placeholder="4242 4242 4242 4242"></div>
+      <div class="fgrid">
+        <div class="fld"><label>Expiration</label><input class="mono" placeholder="MM/AA"></div>
+        <div class="fld"><label>CVC</label><input class="mono" placeholder="•••"></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mPlan')">Annuler</button><button class="btn btn-p" onclick="cm('mPlan');toast('Abonnement Business activé 🎉 — facture disponible')">Confirmer l'abonnement</button></div>
+  </div>
+</div>
+
+<!-- Modale : Documents administratifs (déclarations légales) -->
+<div class="ovl" id="mDocsAdmin">
+  <div class="mdl lg">
+    <div class="mh"><div><h3>🏛 Documents administratifs</h3><p>Génération des documents légaux et internes pour une période donnée.</p></div><button class="x" onclick="cm('mDocsAdmin')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid" style="margin-bottom:16px">
+        <div class="fld"><label>Mois</label><select><option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option><option selected>Mai</option><option>Juin</option><option>Juillet</option></select></div>
+        <div class="fld"><label>Année</label><select><option selected>2026</option><option>2025</option></select></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:12px"><div class="hd" style="padding:11px 16px"><h3 style="font-size:13.5px;color:var(--vert)">Documents CNSS &amp; Inspection du Travail</h3></div><div class="bd" style="padding:12px 16px;display:grid;gap:10px">
+        <label style="display:flex;gap:9px;align-items:center;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:500;color:var(--encre);margin:0"><input type="checkbox" checked style="width:auto"> Registre du personnel <span class="bg bg-g">Inspection du Travail / CNSS</span></label>
+        <label style="display:flex;gap:9px;align-items:center;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:500;color:var(--encre);margin:0"><input type="checkbox" style="width:auto"> Déclaration CNSS mensuelle <span class="bg bg-g">cotisations 5 % + 18 %</span></label>
+      </div></div>
+
+      <div class="panel" style="margin-bottom:12px"><div class="hd" style="padding:11px 16px"><h3 style="font-size:13.5px;color:#8E3325">Documents Impôts (DNI)</h3></div><div class="bd" style="padding:12px 16px">
+        <label style="display:flex;gap:9px;align-items:center;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:500;color:var(--encre);margin:0"><input type="checkbox" checked style="width:auto"> État RTS mensuel — Retenue sur les Traitements et Salaires <span class="bg bg-o">format eTax</span></label>
+      </div></div>
+
+      <div class="panel"><div class="hd" style="padding:11px 16px"><h3 style="font-size:13.5px;color:var(--bleu)">Documents internes</h3></div><div class="bd" style="padding:12px 16px;display:grid;gap:10px">
+        <label style="display:flex;gap:9px;align-items:center;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:500;color:var(--encre);margin:0"><input type="checkbox" checked style="width:auto"> État des salaires <span class="bg bg-g">récapitulatif paie mensuel</span></label>
+        <label style="display:flex;gap:9px;align-items:center;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:500;color:var(--encre);margin:0"><input type="checkbox" style="width:auto"> Suivi des congés <span class="bg bg-g">soldes &amp; absences de la période</span></label>
+        <label style="display:flex;gap:9px;align-items:center;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:500;color:var(--encre);margin:0"><input type="checkbox" style="width:auto"> Fiche individuelle</label>
+        <div style="padding-left:26px;max-width:340px"><select><option>— Sélectionner un employé —</option><option>FAYE Aboubacar — EMP-002</option><option>TOLNO Michel — EMP-004</option><option>TRAORE Aminata — EMP-005</option><option>CAMARA Bountouraby — EMP-007</option></select></div>
+      </div></div>
+
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+        <button class="btn btn-o btn-sm" onclick="selDocs(true)">Tout sélectionner</button>
+        <button class="btn btn-o btn-sm" onclick="selDocs(false)">Tout désélectionner</button>
+        <span class="note" style="margin-left:auto">Les PDF générés sont archivés dans « Documents »</span>
+      </div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mDocsAdmin')">Fermer</button><button class="btn btn-o" onclick="toast('Dossier des documents générés ouvert 📁')">📁 Ouvrir le dossier</button><button class="btn btn-p" onclick="cm('mDocsAdmin');toast('3 documents générés pour Mai 2026 🗎 — archivés dans Documents')">Générer les documents</button></div>
+  </div>
+</div>
+
+<!-- Modale : Journal de paie -->
+<div class="ovl" id="mJournal">
+  <div class="mdl lg">
+    <div class="mh"><div><h3>🗎 Journal de paie — Juillet 2026</h3><p>Document obligatoire (inspection du travail) · une ligne par salarié · 24 salariés.</p></div><button class="x" onclick="cm('mJournal')">✕</button></div>
+    <div class="mb">
+      <table>
+        <tr><th>Matricule</th><th>Salarié</th><th class="num">Brut</th><th class="num">CNSS sal.</th><th class="num">RTS</th><th class="num">CNSS pat.</th><th class="num">VF + CFPA</th><th class="num">Net à payer</th></tr>
+        <tr><td class="mono">EMP-002</td><td><b>FAYE Aboubacar</b></td><td class="gnf">3 745 000</td><td class="gnf">125 000</td><td class="gnf">99 750</td><td class="gnf">450 000</td><td class="gnf">271 875</td><td class="gnf"><b>1 503 268</b></td></tr>
+        <tr><td class="mono">EMP-004</td><td><b>TOLNO Michel</b></td><td class="gnf">3 355 000</td><td class="gnf">125 000</td><td class="gnf">81 000</td><td class="gnf">450 000</td><td class="gnf">242 625</td><td class="gnf"><b>3 149 000</b></td></tr>
+        <tr><td class="mono">EMP-005</td><td><b>TRAORE Aminata</b></td><td class="gnf">2 745 000</td><td class="gnf">125 000</td><td class="gnf">50 500</td><td class="gnf">450 000</td><td class="gnf">196 875</td><td class="gnf"><b>2 569 500</b></td></tr>
+        <tr><td class="mono">EMP-006</td><td><b>SYLLA Aboubacar</b></td><td class="gnf">2 215 000</td><td class="gnf">110 750</td><td class="gnf">29 463</td><td class="gnf">398 700</td><td class="gnf">158 151</td><td class="gnf"><b>2 074 788</b></td></tr>
+        <tr><td class="mono">EMP-007</td><td><b>CAMARA Bountouraby</b></td><td class="gnf">2 389 000</td><td class="gnf">119 450</td><td class="gnf">35 778</td><td class="gnf">430 020</td><td class="gnf">170 575</td><td class="gnf"><b>2 233 773</b></td></tr>
+        <tr><td class="mono">EMP-009</td><td><b>PLEGNEMOU Gassim</b></td><td class="gnf">4 480 000</td><td class="gnf">125 000</td><td class="gnf">146 800</td><td class="gnf">450 000</td><td class="gnf">327 000</td><td class="gnf"><b>4 208 200</b></td></tr>
+        <tr style="border-top:2px solid var(--encre)"><td colspan="2" style="font-weight:700">TOTAUX (24 salariés)</td><td class="gnf"><b>79 214 000</b></td><td class="gnf"><b>3 673 000</b></td><td class="gnf"><b>1 245 730</b></td><td class="gnf"><b>13 218 400</b></td><td class="gnf"><b>2 654 010</b></td><td class="gnf" style="color:var(--vert)"><b>72 278 288</b></td></tr>
+      </table>
+      <p class="note" style="margin-top:10px">Aperçu partiel — le PDF complet contient les 24 lignes, les cumuls annuels et la signature de l'employeur.</p>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mJournal')">Fermer</button><button class="btn btn-o" onclick="toast('Export Excel du journal généré ⇩')">⇩ Excel</button><button class="btn btn-p" onclick="cm('mJournal');toast('Journal de paie PDF généré et archivé 🗎')">⇩ Télécharger le PDF</button></div>
+  </div>
+</div>
+
+<!-- Modale : Modifier employé -->
+<div class="ovl" id="mModifEmploye">
+  <div class="mdl lg">
+    <div class="mh"><div><h3>✎ Modifier la fiche — FAYE Aboubacar</h3><p>Matricule <b class="mono">EMP-002</b> (non modifiable) · toute modification est tracée dans l'historique.</p></div><button class="x" onclick="cm('mModifEmploye')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid">
+        <div class="fld"><label>Civilité</label><select><option selected>M.</option><option>Mme</option><option>Mlle</option></select></div>
+        <div class="fld"><label>Situation matrimoniale</label><select><option selected>Marié(e)</option><option>Célibataire</option></select></div>
+        <div class="fld"><label>Nom</label><input value="FAYE"></div>
+        <div class="fld"><label>Prénom</label><input value="Aboubacar"></div>
+        <div class="fld"><label>Téléphone</label><input class="mono" value="628 44 12 09"></div>
+        <div class="fld"><label>Email</label><input value="faye.a@garaya.gn"></div>
+        <div class="fld w"><label>Adresse</label><input value="Hafia, Commune de Ratoma, Conakry"></div>
+        <div class="fld"><label>Poste</label><select><option selected>Comptable</option><option>Aide-comptable</option><option>R.A.F</option></select></div>
+        <div class="fld"><label>Département</label><select><option selected>DAF</option><option>D.R.H</option><option>Conformité</option></select></div>
+        <div class="fld"><label>Supérieur hiérarchique</label><select><option selected>PLEGNEMOU Gassim — R.A.F</option></select></div>
+        <div class="fld"><label>Mode de paiement</label><select><option selected>Virement</option><option>Espèces</option><option>Chèque</option></select></div>
+      </div>
+      <div class="alert or" style="margin-top:8px"><span class="ic">🔒</span><div>Le <b>salaire de base et les primes</b> ne se modifient pas ici : utilisez « Nouveau mouvement » pour garder la traçabilité (ancienne/nouvelle valeur, motif, date d'effet).</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mModifEmploye')">Annuler</button><button class="btn btn-o" onclick="cm('mModifEmploye');om('mMouvement')">↕ Modifier le salaire (mouvement)</button><button class="btn btn-p" onclick="cm('mModifEmploye');toast('Fiche mise à jour ✓ — modification tracée dans l\'historique')">Enregistrer</button></div>
+  </div>
+</div>
+
+<!-- Modale : Mon profil (utilisateur app) -->
+<div class="ovl" id="mProfil">
+  <div class="mdl">
+    <div class="mh"><div><h3>👤 Mon profil</h3><p>Vos informations de compte. Les données RH (salaire, contrat) se gèrent sur votre fiche employé.</p></div><button class="x" onclick="cm('mProfil')">✕</button></div>
+    <div class="mb">
+      <div style="display:flex;gap:16px;align-items:center;margin-bottom:18px">
+        <span class="av" style="width:64px;height:64px;font-size:22px">MT</span>
+        <div>
+          <button class="btn btn-o btn-sm" onclick="toast('Nouvelle photo de profil enregistrée 📷')">📷 Changer la photo</button>
+          <p class="note" style="margin-top:6px">JPG ou PNG, 2 Mo max.</p>
+        </div>
+      </div>
+      <div class="fgrid">
+        <div class="fld"><label>Prénom</label><input value="Michel"></div>
+        <div class="fld"><label>Nom</label><input value="TOLNO"></div>
+        <div class="fld"><label>Email de connexion</label><input type="email" value="m.tolno@garaya.gn"></div>
+        <div class="fld"><label>Téléphone</label><input class="mono" value="622 18 40 27"></div>
+        <div class="fld"><label>Rôle</label><input value="RH (administrateur)" disabled style="background:var(--menthe2)"></div>
+        <div class="fld"><label>Fiche employé liée</label><input value="TOLNO Michel — EMP-004" disabled style="background:var(--menthe2)"></div>
+        <div class="fld"><label>Langue</label><select><option>Français</option></select></div>
+        <div class="fld"><label>Fuseau horaire</label><select><option>GMT — Conakry</option></select></div>
+      </div>
+      <div class="tglrow" style="margin-top:6px">
+        <div><b>Authentification à deux facteurs (2FA)</b><small>Fortement recommandée pour les rôles RH et Admin.</small></div>
+        <button class="btn btn-o btn-sm" onclick="toast('Assistant 2FA ouvert — scannez le QR code avec votre application 🔐')">Activer</button>
+      </div>
+      <div class="alert or" style="margin-top:10px"><span class="ic">ℹ</span><div>La modification de l’email de connexion nécessitera une confirmation envoyée à l’ancienne et à la nouvelle adresse.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mProfil')">Annuler</button><button class="btn btn-p" onclick="cm('mProfil');toast('Profil mis à jour ✓')">Enregistrer</button></div>
+  </div>
+</div>
+
+<!-- Modale : Mon profil (employé portail) -->
+<div class="ovl" id="mProfilEmp">
+  <div class="mdl">
+    <div class="mh"><div><h3>👤 Mon profil</h3><p>Vous pouvez mettre à jour vos coordonnées. Les autres informations sont gérées par le service RH.</p></div><button class="x" onclick="cm('mProfilEmp')">✕</button></div>
+    <div class="mb">
+      <div class="fgrid">
+        <div class="fld"><label>Nom complet</label><input value="CAMARA Bountouraby" disabled style="background:var(--menthe2)"></div>
+        <div class="fld"><label>Poste</label><input value="Formatrice — D.R.H" disabled style="background:var(--menthe2)"></div>
+        <div class="fld"><label>Téléphone</label><input class="mono" value="628 77 45 12"></div>
+        <div class="fld"><label>Email personnel</label><input type="email" value="b.camara@garaya.gn"></div>
+        <div class="fld w"><label>Adresse</label><input value="Koloma, Commune de Ratoma, Conakry"></div>
+        <div class="fld"><label>Contact d’urgence</label><input value="CAMARA Sékou (frère)"></div>
+        <div class="fld"><label>Téléphone d’urgence</label><input class="mono" value="655 09 31 20"></div>
+      </div>
+      <div class="alert vt"><span class="ic">✓</span><div>Toute modification est <b>notifiée au service RH</b> et tracée dans votre dossier.</div></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mProfilEmp')">Annuler</button><button class="btn btn-p" onclick="cm('mProfilEmp');toast('Coordonnées mises à jour ✓ — le service RH est notifié')">Enregistrer</button></div>
+  </div>
+</div>
+
+<!-- Modale : Modifier le mot de passe -->
+<div class="ovl" id="mMdp">
+  <div class="mdl sm">
+    <div class="mh"><div><h3>🔑 Modifier le mot de passe</h3><p>Vous resterez connecté(e) sur cet appareil.</p></div><button class="x" onclick="cm('mMdp')">✕</button></div>
+    <div class="mb">
+      <div class="fld"><label>Mot de passe actuel</label><input type="password" placeholder="••••••••"></div>
+      <div class="fld"><label>Nouveau mot de passe</label><input type="password" placeholder="8 caractères min., 1 chiffre, 1 majuscule">
+        <div class="pwd-meter"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i></i></div>
+        <p class="note" style="margin-top:4px">Robustesse : <b style="color:var(--vert)">bonne</b></p>
+      </div>
+      <div class="fld"><label>Confirmer le nouveau mot de passe</label><input type="password" placeholder="••••••••"></div>
+      <div class="alert or"><span class="ic">🛡</span><div>Toutes les <b>autres sessions</b> (téléphone, autre navigateur) seront déconnectées par sécurité.</div></div>
+      <a class="link" href="#" onclick="cm('mMdp');go('forgot');return false">Mot de passe actuel oublié ?</a>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mMdp')">Annuler</button><button class="btn btn-p" onclick="cm('mMdp');toast('Mot de passe modifié ✓ — les autres sessions ont été déconnectées 🛡')">Modifier le mot de passe</button></div>
+  </div>
+</div>
+
+<!-- Modale : Préférences de notifications -->
+<div class="ovl" id="mNotifs">
+  <div class="mdl">
+    <div class="mh"><div><h3>🔔 Préférences de notifications</h3><p>Choisissez les emails que vous souhaitez recevoir.</p></div><button class="x" onclick="cm('mNotifs')">✕</button></div>
+    <div class="mb">
+      <div class="tglrow"><div><b>Demande de congé à valider</b><small>Quand un collaborateur soumet une demande qui vous concerne.</small></div><span class="tgl on" onclick="this.classList.toggle('on')"></span></div>
+      <div class="tglrow"><div><b>Décision sur mes demandes</b><small>Approbation ou refus de vos propres demandes.</small></div><span class="tgl on" onclick="this.classList.toggle('on')"></span></div>
+      <div class="tglrow"><div><b>Bulletin de paie disponible</b><small>Chaque mois, dès la clôture de la paie.</small></div><span class="tgl on" onclick="this.classList.toggle('on')"></span></div>
+      <div class="tglrow"><div><b>Alertes RH hebdomadaires</b><small>CDD à échéance, pièces expirant, fins de période d’essai (rôles RH/Manager).</small></div><span class="tgl on" onclick="this.classList.toggle('on')"></span></div>
+      <div class="tglrow"><div><b>Nouveautés produit</b><small>Annonces Nex’SIRH (1 à 2 par mois maximum).</small></div><span class="tgl" onclick="this.classList.toggle('on')"></span></div>
+    </div>
+    <div class="mf"><button class="btn btn-g" onclick="cm('mNotifs')">Annuler</button><button class="btn btn-p" onclick="cm('mNotifs');toast('Préférences enregistrées ✓')">Enregistrer</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const APP_VIEWS=['dash','employes','fiche','paie','conges','temps','docs','rapports','params','fact'];
+const TITLES={dash:'Tableau de bord',employes:'Employés',fiche:'Fiche employé',paie:'Paie mensuelle — Juillet 2026',conges:'Congés & absences',temps:'Temps & présence',docs:'Documents',rapports:'Rapports & indicateurs',params:'Paramétrage',fact:'Abonnement & facturation'};
+const NAVMAP={fiche:'employes'};
+
+function go(v){
+  document.querySelectorAll('.full').forEach(s=>s.classList.add('hidden'));
+  const shell=document.getElementById('appShell');
+  if(APP_VIEWS.includes(v)){
+    shell.classList.remove('hidden');
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+    document.getElementById('v-'+v).classList.add('on');
+    document.getElementById('tbTitle').textContent=TITLES[v]||'';
+    const nk=NAVMAP[v]||v;
+    document.querySelectorAll('.rail .nv').forEach(a=>a.classList.toggle('on',a.dataset.v===nk));
+    window.scrollTo({top:0});
+  }else{
+    shell.classList.add('hidden');
+    document.getElementById('v-'+v).classList.remove('hidden');
+  }
+  document.querySelectorAll('#mBar button[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+}
+document.querySelectorAll('#mBar button[data-v]').forEach(b=>b.onclick=()=>go(b.dataset.v));
+document.querySelectorAll('.rail .nv').forEach(a=>a.onclick=e=>{e.preventDefault();go(a.dataset.v)});
+
+function tab(btn,id,cls){
+  cls=cls||'ftab';
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const scope=btn.closest('.view');
+  scope.querySelectorAll('.'+cls).forEach(t=>t.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+function ptab(btn,id){
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.potab').forEach(t=>t.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+function om(id){document.getElementById(id).classList.add('on')}
+function cm(id){document.getElementById(id).classList.remove('on')}
+document.querySelectorAll('.ovl').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on')}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.ovl.on').forEach(o=>o.classList.remove('on'))});
+function sgStep(n){
+  document.getElementById('sg2').classList.toggle('hidden',n===3);
+  document.getElementById('sg3').classList.toggle('hidden',n!==3);
+  document.querySelectorAll('#v-signup .steps span').forEach((s,i)=>s.classList.toggle('on',i<n));
+}
+function ctab(btn,id){
+  btn.parentElement.querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('#v-conges .ctab').forEach(t=>t.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+function selDocs(v){document.querySelectorAll('#mDocsAdmin input[type=checkbox]').forEach(c=>c.checked=v);}
+function tgP(id){
+  const m=document.getElementById(id);
+  const open=m.classList.contains('open');
+  document.querySelectorAll('.pmenu').forEach(x=>{x.classList.remove('open');x.querySelector('.pdrop').classList.remove('on')});
+  if(!open){m.classList.add('open');m.querySelector('.pdrop').classList.add('on')}
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.pmenu'))document.querySelectorAll('.pmenu').forEach(x=>{x.classList.remove('open');x.querySelector('.pdrop').classList.remove('on')});
+});
+function toast(msg){
+  const t=document.createElement('div');t.className='tst';t.innerHTML='<i>●</i>'+msg;
+  document.getElementById('toast').appendChild(t);
+  setTimeout(()=>t.remove(),3500);
+}
+</script>
+</body>
+</html>
