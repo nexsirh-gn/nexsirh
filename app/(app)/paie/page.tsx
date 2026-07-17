@@ -97,7 +97,11 @@ export default function Paie() {
                 </td>
                 <td className="gnf"><b>{formatGNF(b.net_pay)}</b></td>
                 <td><span className={`bg ${run.status === "brouillon" ? "bg-o" : "bg-v"}`}>{libStatut}</span></td>
-                <td><button className="btn btn-o btn-sm" onClick={() => om("mBulletin")}>Bulletin</button></td>
+                <td>
+                  <button className="btn btn-o btn-sm" onClick={() => om("mBulletin")}>Bulletin</button>{" "}
+                  <a className="btn btn-g btn-sm" href={`/api/documents/bulletin/${b.id}`}
+                    onClick={() => toast("Téléchargement du bulletin PDF…")}>⇩ PDF</a>
+                </td>
               </tr>
             ))}
           </tbody>

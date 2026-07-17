@@ -33,7 +33,8 @@ export default function MesBulletins() {
                 <td className="gnf"><b>{formatGNF(b.net_pay)}</b></td>
                 <td>
                   <button className="btn btn-o btn-sm" onClick={() => om("mBulletin")}>Aperçu</button>{" "}
-                  <button className="btn btn-g btn-sm" onClick={() => toast("Génération PDF : disponible à l’étape O")}>⇩ PDF</button>
+                  <a className="btn btn-g btn-sm" href={`/api/documents/bulletin/${b.id}`}
+                    onClick={() => toast("Téléchargement du bulletin PDF…")}>⇩ PDF</a>
                 </td>
               </tr>
             );
