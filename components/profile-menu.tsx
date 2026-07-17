@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useModal, useToast } from "@/components/providers";
+import { createClient } from "@/lib/supabase/client";
 import type { ModalId } from "@/components/modals";
 
 type MenuLink = {
@@ -88,10 +89,12 @@ export function ProfileMenu({
         <div className="dv" />
         <a
           className="dgr"
-          onClick={() => {
+          onClick={async () => {
             setOpen(false);
+            await createClient().auth.signOut();
             toast(logoutMessage);
             router.push(logoutHref);
+            router.refresh();
           }}
         >
           <span className="pi">⏻</span> Se déconnecter

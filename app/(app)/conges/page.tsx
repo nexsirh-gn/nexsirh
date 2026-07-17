@@ -2,113 +2,128 @@
 
 import { useState } from "react";
 import { useModal, useToast } from "@/components/providers";
+import { useQuery, initiales } from "@/lib/hooks";
+import { deciderConge } from "@/app/actions";
 
-type CTab = "ct1" | "ct2" | "ct3" | "ct4";
+type CTab = "attente" | "approuve" | "refuse";
+type Demande = {
+  id: string; leave_type_code: string; start_date: string; end_date: string;
+  working_days: number; status: string; refusal_reason: string | null; comment: string | null;
+  employees: { first_name: string; last_name: string; departments: { name: string } | null } | null;
+};
 
 export default function Conges() {
-  const [tab, setTab] = useState<CTab>("ct1");
+  const [tab, setTab] = useState<CTab>("attente");
+  const [enTraitement, setEnTraitement] = useState<Demande | null>(null);
+  const [motif, setMotif] = useState("");
+  const [pending, setPending] = useState(false);
   const { om } = useModal();
   const toast = useToast();
 
-  const chips: [CTab, string][] = [
-    ["ct1", "À traiter · 3"],
-    ["ct2", "Approuvées · 12"],
-    ["ct3", "Refusées · 2"],
-    ["ct4", "Planning"],
-  ];
+  const { data, loading, error, refresh } = useQuery(async (sb) => {
+    const res = await sb.from("leave_requests")
+      .select("id, leave_type_code, start_date, end_date, working_days, status, refusal_reason, comment, employees(first_name, last_name, departments(name))")
+      .order("created_at", { ascending: false });
+    if (res.error) throw res.error;
+    return res.data as unknown as Demande[];
+  });
+
+  if (loading) return <div className="note">Chargement des congés…</div>;
+  if (error) return <div className="alert rg"><span className="ic">⚠</span><div>Erreur : {error}</div></div>;
+  const demandes = data!;
+
+  const attente = demandes.filter((d) => d.status.startsWith("attente"));
+  const approuvees = demandes.filter((d) => d.status === "approuve");
+  const refusees = demandes.filter((d) => d.status === "refuse");
+  const liste = tab === "attente" ? attente : tab === "approuve" ? approuvees : refusees;
+
+  const nomDe = (d: Demande) => d.employees ? `${d.employees.last_name} ${d.employees.first_name}` : "—";
+  const periode = (d: Demande) =>
+    `${new Date(d.start_date).toLocaleDateString("fr-FR")} – ${new Date(d.end_date).toLocaleDateString("fr-FR")}`;
+
+  async function decider(decision: "approuver" | "refuser") {
+    if (!enTraitement) return;
+    if (decision === "refuser" && !motif.trim()) { toast("Motif obligatoire en cas de refus."); return; }
+    setPending(true);
+    const res = await deciderConge(enTraitement.id, decision, motif);
+    setPending(false);
+    setEnTraitement(null);
+    setMotif("");
+    if (res.ok) { toast(decision === "approuver" ? "Congé approuvé ✓ — solde mis à jour" : "Demande refusée — salarié notifié"); refresh(); }
+    else toast(`Erreur : ${res.error}`);
+  }
 
   return (
     <div>
       <div className="tools">
-        {chips.map(([id, label]) => (
-          <button key={id} className={`chip ${tab === id ? "on" : ""}`} onClick={() => setTab(id)}>{label}</button>
-        ))}
+        <button className={`chip ${tab === "attente" ? "on" : ""}`} onClick={() => setTab("attente")}>À traiter · {attente.length}</button>
+        <button className={`chip ${tab === "approuve" ? "on" : ""}`} onClick={() => setTab("approuve")}>Approuvées · {approuvees.length}</button>
+        <button className={`chip ${tab === "refuse" ? "on" : ""}`} onClick={() => setTab("refuse")}>Refusées · {refusees.length}</button>
         <span className="sp" />
         <button className="btn btn-p" onClick={() => om("mDemandeConge")}>+ Nouvelle demande</button>
       </div>
 
-      {tab === "ct1" && (
-        <div className="panel" style={{ marginBottom: 18 }}>
-          <div className="hd"><h3>Demandes en attente</h3></div>
-          <table>
-            <tbody>
-              <tr><th>Salarié</th><th>Type</th><th>Période</th><th className="num">Jours ouvr.</th><th className="num">Solde après</th><th>Circuit</th><th></th></tr>
-              <tr>
-                <td><div className="emp"><span className="av g">BC</span><div><b>CAMARA Bountouraby</b><small>D.R.H</small></div></div></td>
-                <td>Congé annuel</td><td>04 – 15 août</td><td className="gnf mono">9</td><td className="gnf mono">3,5 j</td>
-                <td><span className="bg bg-v">Manager ✓</span> <span className="bg bg-o">RH…</span></td>
-                <td><button className="btn btn-p btn-sm" onClick={() => om("mValiderConge")}>Traiter</button></td>
+      <div className="panel">
+        <div className="hd"><h3>{tab === "attente" ? "Demandes en attente" : tab === "approuve" ? "Demandes approuvées" : "Demandes refusées"}</h3></div>
+        <table>
+          <tbody>
+            <tr>
+              <th>Salarié</th><th>Type</th><th>Période</th><th className="num">Jours ouvr.</th>
+              {tab === "refuse" ? <th>Motif</th> : <th>Circuit</th>}
+              {tab === "attente" && <th></th>}
+            </tr>
+            {liste.map((d) => (
+              <tr key={d.id}>
+                <td><div className="emp"><span className="av g">{initiales(nomDe(d))}</span><div><b>{nomDe(d)}</b><small>{d.employees?.departments?.name ?? ""}</small></div></div></td>
+                <td>{d.leave_type_code}{d.comment ? ` (${d.comment})` : ""}</td>
+                <td>{periode(d)}</td>
+                <td className="gnf mono">{d.working_days}</td>
+                {tab === "refuse" ? (
+                  <td>{d.refusal_reason}</td>
+                ) : (
+                  <td>
+                    {d.status === "attente_manager" && <span className="bg bg-b">Manager…</span>}
+                    {d.status === "attente_rh" && <><span className="bg bg-v">Manager ✓</span> <span className="bg bg-o">RH…</span></>}
+                    {d.status === "approuve" && <span className="bg bg-v">Approuvée</span>}
+                  </td>
+                )}
+                {tab === "attente" && (
+                  <td><button className="btn btn-p btn-sm" onClick={() => setEnTraitement(d)}>Traiter</button></td>
+                )}
               </tr>
-              <tr>
-                <td><div className="emp"><span className="av g">OC</span><div><b>CONTE Ousmane</b><small>Conformité</small></div></div></td>
-                <td>Permission (mariage)</td><td>21 juillet</td><td className="gnf mono">1</td><td className="gnf mono">—</td>
-                <td><span className="bg bg-b">Manager…</span></td>
-                <td><button className="btn btn-p btn-sm" onClick={() => om("mValiderConge")}>Traiter</button></td>
-              </tr>
-              <tr>
-                <td><div className="emp"><span className="av g">AT</span><div><b>TRAORE Aminata</b><small>DAF</small></div></div></td>
-                <td>Congé maladie <span className="bg bg-g">certificat joint</span></td><td>10 – 11 juillet</td><td className="gnf mono">2</td><td className="gnf mono">n/a</td>
-                <td><span className="bg bg-v">Manager ✓</span> <span className="bg bg-o">RH…</span></td>
-                <td><button className="btn btn-p btn-sm" onClick={() => om("mValiderConge")}>Traiter</button></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))}
+            {liste.length === 0 && <tr><td colSpan={6} className="note">Aucune demande.</td></tr>}
+          </tbody>
+        </table>
+      </div>
 
-      {tab === "ct2" && (
-        <div className="panel">
-          <div className="hd"><h3>Demandes approuvées — 2026</h3><span className="sp" /><button className="btn btn-o btn-sm" onClick={() => toast("Export Excel des congés approuvés généré")}>⇩ Exporter</button></div>
-          <table>
-            <tbody>
-              <tr><th>Salarié</th><th>Type</th><th>Période</th><th className="num">Jours ouvr.</th><th>Validée par (Manager → RH)</th><th>Le</th><th></th></tr>
-              <tr><td><div className="emp"><span className="av g">AF</span><div><b>FAYE Aboubacar</b><small>DAF</small></div></div></td><td>Congé annuel</td><td>10 – 17 mars</td><td className="gnf mono">6</td><td>G. Plegnemou → M. Tolno</td><td>02/03</td><td><button className="btn btn-g btn-sm" onClick={() => om("mGenererDoc")}>Certificat</button></td></tr>
-              <tr><td><div className="emp"><span className="av g">MB</span><div><b>BARRY Moussa</b><small>D.R.H</small></div></div></td><td>Permission (mariage)</td><td>21 juillet</td><td className="gnf mono">1</td><td>M. Tolno</td><td>08/07</td><td><button className="btn btn-g btn-sm" onClick={() => om("mGenererDoc")}>Certificat</button></td></tr>
-              <tr><td><div className="emp"><span className="av g">BC</span><div><b>CAMARA Bountouraby</b><small>D.R.H</small></div></div></td><td>Congé annuel</td><td>23 – 27 déc. 2025</td><td className="gnf mono">4</td><td>M. Barry → M. Tolno</td><td>10/12</td><td><button className="btn btn-g btn-sm" onClick={() => om("mGenererDoc")}>Certificat</button></td></tr>
-              <tr><td><div className="emp"><span className="av g">GP</span><div><b>PLEGNEMOU Gassim</b><small>DAF</small></div></div></td><td>Congé annuel</td><td>05 – 16 janv.</td><td className="gnf mono">10</td><td>I. Sow → M. Tolno</td><td>18/12</td><td><button className="btn btn-g btn-sm" onClick={() => om("mGenererDoc")}>Certificat</button></td></tr>
-            </tbody>
-          </table>
-          <div className="pgn"><span>12 demandes approuvées en 2026</span><div className="pgs"><button className="on">1</button><button>2</button></div></div>
-        </div>
-      )}
-
-      {tab === "ct3" && (
-        <div className="panel">
-          <div className="hd"><h3>Demandes refusées — 2026</h3></div>
-          <table>
-            <tbody>
-              <tr><th>Salarié</th><th>Type</th><th>Période</th><th className="num">Jours</th><th>Refusée par</th><th>Motif</th></tr>
-              <tr><td><div className="emp"><span className="av g">AS</span><div><b>SYLLA Aboubacar</b><small>Conformité</small></div></div></td><td>Congé annuel</td><td>28/07 – 08/08</td><td className="gnf mono">9</td><td>M. Tolno (RH)</td><td>Fin de CDD le 31/07 — solde payé au solde de tout compte</td></tr>
-              <tr><td><div className="emp"><span className="av g">OC</span><div><b>CONTE Ousmane</b><small>Conformité</small></div></div></td><td>Congé annuel</td><td>02 – 06 juin</td><td className="gnf mono">5</td><td>G. Plegnemou (Manager)</td><td>Effectif insuffisant — inventaire semestriel</td></tr>
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {tab === "ct4" && (
-        <div className="panel">
-          <div className="hd">
-            <h3>Planning d’équipe — Juillet 2026 · D.R.H</h3><span className="sp" />
-            <span className="leg" style={{ display: "flex", gap: 14 }}>
-              <span><i style={{ background: "var(--vert)" }} />Congé annuel</span>
-              <span><i style={{ background: "var(--rouge)" }} />Maladie</span>
-              <span><i style={{ background: "var(--or)" }} />Permission</span>
-            </span>
-          </div>
-          <div className="bd">
-            <div className="wk">
-              <div />
-              {["L13", "M14", "M15", "J16", "V17", "S", "D", "L20", "M21", "M22", "J23", "V24", "S", "D"].map((d, i) => (
-                <div key={i} className="hd7">{d}</div>
-              ))}
-              <div className="nm">TOLNO Michel</div>
-              {["", "", "", "", "", "we", "we", "", "", "", "", "", "we", "we"].map((c, i) => <div key={i} className={`dy ${c}`} />)}
-              <div className="nm">CAMARA Bountouraby</div>
-              {["", "", "ca", "ca", "ca", "we", "we", "", "", "", "", "", "we", "we"].map((c, i) => <div key={i} className={`dy ${c}`} />)}
-              <div className="nm">BARRY Moussa</div>
-              {["", "", "", "", "", "we", "we", "", "pm", "", "", "", "we", "we"].map((c, i) => <div key={i} className={`dy ${c}`} />)}
-              <div className="nm">DIALLO Fatoumata</div>
-              {["", "cm", "cm", "", "", "we", "we", "", "", "", "", "", "we", "we"].map((c, i) => <div key={i} className={`dy ${c}`} />)}
+      {/* Modale de traitement — écriture réelle */}
+      {enTraitement && (
+        <div className="ovl" onClick={(e) => e.target === e.currentTarget && setEnTraitement(null)}>
+          <div className="mdl">
+            <div className="mh">
+              <div>
+                <h3>Traiter la demande de congé</h3>
+                <p>{nomDe(enTraitement)} · {enTraitement.leave_type_code} · {periode(enTraitement)} ({enTraitement.working_days} j ouvrables)</p>
+              </div>
+              <button className="x" onClick={() => setEnTraitement(null)}>✕</button>
+            </div>
+            <div className="mb">
+              <div className="stat-line">
+                <span>Étape actuelle</span>
+                <b>{enTraitement.status === "attente_manager" ? <span className="bg bg-b">Validation manager</span> : <span className="bg bg-o">Validation RH</span>}</b>
+              </div>
+              <div className="fld" style={{ marginTop: 16 }}>
+                <label>Motif (obligatoire en cas de refus)</label>
+                <textarea rows={2} value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Ex. : effectif insuffisant sur la période…" />
+              </div>
+            </div>
+            <div className="mf">
+              <button className="btn btn-g" onClick={() => setEnTraitement(null)}>Fermer</button>
+              <button className="btn btn-d" disabled={pending} onClick={() => decider("refuser")}>Refuser</button>
+              <button className="btn btn-p" disabled={pending} onClick={() => decider("approuver")}>
+                ✓ Approuver {enTraitement.status === "attente_manager" ? "(manager)" : "(validation RH)"}
+              </button>
             </div>
           </div>
         </div>

@@ -1,26 +1,120 @@
 "use client";
 
-import { useModal } from "@/components/providers";
+import { useState } from "react";
+import { useToast } from "@/components/providers";
+import { useQuery } from "@/lib/hooks";
+import { demanderConge } from "@/app/actions";
 
 export default function MesConges() {
-  const { om } = useModal();
+  const toast = useToast();
+  const [ouvert, setOuvert] = useState(false);
+  const [du, setDu] = useState("");
+  const [au, setAu] = useState("");
+  const [type, setType] = useState("CA");
+  const [commentaire, setCommentaire] = useState("");
+  const [pending, setPending] = useState(false);
+
+  const { data, loading, error, refresh } = useQuery(async (sb) => {
+    const { data: { user } } = await sb.auth.getUser();
+    const { data: profil } = await sb.from("profiles").select("employee_id").eq("id", user!.id).single();
+    const [demandes, solde] = await Promise.all([
+      sb.from("leave_requests").select("id, leave_type_code, start_date, end_date, working_days, status").order("created_at", { ascending: false }),
+      sb.from("leave_balances").select("entitled_days, seniority_bonus_days, carryover_days, taken_days").eq("year", 2026).maybeSingle(),
+    ]);
+    return { demandes: demandes.data ?? [], solde: solde.data, employeeId: profil?.employee_id as string | null };
+  });
+
+  if (loading) return <div className="note">Chargement de vos congés…</div>;
+  if (error) return <div className="alert rg"><span className="ic">⚠</span><div>Erreur : {error}</div></div>;
+  const d = data!;
+  const dispo = d.solde ? d.solde.entitled_days + d.solde.seniority_bonus_days + d.solde.carryover_days - d.solde.taken_days : null;
+
+  function joursOuvrables(a: string, b: string): number {
+    let n = 0;
+    for (let dt = new Date(a); dt <= new Date(b); dt.setDate(dt.getDate() + 1)) {
+      if (dt.getDay() !== 0 && dt.getDay() !== 6) n++;
+    }
+    return n;
+  }
+
+  async function envoyer() {
+    if (!du || !au || !d.employeeId) { toast("Renseignez les dates."); return; }
+    setPending(true);
+    const res = await demanderConge({
+      employeeId: d.employeeId, typeCode: type, du, au,
+      jours: joursOuvrables(du, au), commentaire,
+    });
+    setPending(false);
+    setOuvert(false);
+    if (res.ok) { toast("Demande envoyée — notification au manager ✓"); refresh(); }
+    else toast(`Erreur : ${res.error}`);
+  }
+
+  const STATUTS: Record<string, [string, string]> = {
+    attente_manager: ["Validation manager en cours", "bg-b"],
+    attente_rh: ["Validation RH en cours", "bg-o"],
+    approuve: ["Approuvée", "bg-v"],
+    refuse: ["Refusée", "bg-r"],
+    annule: ["Annulée", "bg-g"],
+  };
+
   return (
     <div>
       <div className="tools">
-        <span className="note">Solde disponible : <b className="mono">12,5 jours ouvrables</b></span>
+        <span className="note">Solde disponible : <b className="mono">{dispo != null ? `${dispo.toLocaleString("fr-FR")} jours ouvrables` : "—"}</b></span>
         <span className="sp" />
-        <button className="btn btn-p" onClick={() => om("mDemandeConge")}>+ Demander un congé</button>
+        <button className="btn btn-p" onClick={() => setOuvert(true)}>+ Demander un congé</button>
       </div>
       <div className="panel">
         <table>
           <tbody>
             <tr><th>Type</th><th>Période</th><th className="num">Jours</th><th>Statut</th></tr>
-            <tr><td>Congé annuel</td><td>04 – 15 août 2026</td><td className="gnf mono">9</td><td><span className="bg bg-o">Validation RH en cours</span></td></tr>
-            <tr><td>Congé annuel</td><td>23 – 27 décembre 2025</td><td className="gnf mono">4</td><td><span className="bg bg-v">Approuvée</span></td></tr>
-            <tr><td>Permission (naissance)</td><td>02 octobre 2025</td><td className="gnf mono">1</td><td><span className="bg bg-v">Approuvée</span></td></tr>
+            {d.demandes.map((dem) => {
+              const [lib, cls] = STATUTS[dem.status] ?? [dem.status, "bg-g"];
+              return (
+                <tr key={dem.id}>
+                  <td>{dem.leave_type_code}</td>
+                  <td>{new Date(dem.start_date).toLocaleDateString("fr-FR")} – {new Date(dem.end_date).toLocaleDateString("fr-FR")}</td>
+                  <td className="gnf mono">{dem.working_days}</td>
+                  <td><span className={`bg ${cls}`}>{lib}</span></td>
+                </tr>
+              );
+            })}
+            {d.demandes.length === 0 && <tr><td colSpan={4} className="note">Aucune demande.</td></tr>}
           </tbody>
         </table>
       </div>
+
+      {ouvert && (
+        <div className="ovl" onClick={(e) => e.target === e.currentTarget && setOuvert(false)}>
+          <div className="mdl">
+            <div className="mh">
+              <div><h3>Nouvelle demande de congé</h3><p>Les jours ouvrables sont calculés automatiquement (week-ends exclus).</p></div>
+              <button className="x" onClick={() => setOuvert(false)}>✕</button>
+            </div>
+            <div className="mb">
+              <div className="fgrid">
+                <div className="fld"><label>Type d’absence</label>
+                  <select value={type} onChange={(e) => setType(e.target.value)}>
+                    <option value="CA">Congé annuel</option><option value="CM">Congé maladie</option>
+                    <option value="CMAT">Congé maternité</option><option value="PERM">Permission exceptionnelle</option>
+                  </select>
+                </div>
+                <div className="fld"><label>Du</label><input type="date" value={du} onChange={(e) => setDu(e.target.value)} /></div>
+                <div className="fld"><label>Au (inclus)</label><input type="date" value={au} onChange={(e) => setAu(e.target.value)} /></div>
+                <div className="fld w"><label>Commentaire</label><textarea rows={2} value={commentaire} onChange={(e) => setCommentaire(e.target.value)} placeholder="Motif ou précision…" /></div>
+              </div>
+              {du && au && (
+                <div className="alert vt"><span className="ic">🧮</span><div><b>{joursOuvrables(du, au)} jours ouvrables</b> décomptés. Circuit : Manager → RH.</div></div>
+              )}
+            </div>
+            <div className="mf">
+              <button className="btn btn-g" onClick={() => setOuvert(false)}>Annuler</button>
+              <button className="btn btn-p" disabled={pending} onClick={envoyer}>{pending ? "Envoi…" : "Envoyer la demande"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,21 +1,56 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useModal, useToast } from "@/components/providers";
+import { useQuery, formatGNF } from "@/lib/hooks";
 
 export default function Entreprises() {
   const { om } = useModal();
   const toast = useToast();
-  const fiche = "/admin/entreprises/garaya-holding";
+  const [filtre, setFiltre] = useState<"toutes" | "active" | "trial" | "past_due" | "suspended">("toutes");
+
+  const { data, loading, error } = useQuery(async (sb) => {
+    const [companies, subs, plans, emps, profils] = await Promise.all([
+      sb.from("companies").select("id, name, nif, sector, city, status"),
+      sb.from("subscriptions").select("company_id, status, plan_id"),
+      sb.from("plans").select("id, name, price_gnf"),
+      sb.from("employees").select("id, company_id"),
+      sb.from("profiles").select("id, company_id"),
+    ]);
+    return {
+      companies: companies.data ?? [], subs: subs.data ?? [], plans: plans.data ?? [],
+      emps: emps.data ?? [], profils: profils.data ?? [],
+    };
+  });
+
+  if (loading) return <div className="note">Chargement des entreprises…</div>;
+  if (error) return <div className="alert rg"><span className="ic">⚠</span><div>Erreur : {error}</div></div>;
+  const d = data!;
+
+  const lignes = d.companies.map((c) => {
+    const sub = d.subs.find((s) => s.company_id === c.id);
+    const plan = d.plans.find((p) => p.id === sub?.plan_id);
+    return {
+      ...c,
+      subStatus: c.status === "suspended" ? "suspended" : (sub?.status ?? "trial"),
+      planNom: plan?.name ?? "Essai",
+      mrr: sub?.status === "active" ? plan?.price_gnf ?? 0 : 0,
+      nbSalaries: d.emps.filter((e) => e.company_id === c.id).length,
+      nbUsers: d.profils.filter((p) => p.company_id === c.id).length,
+    };
+  });
+  const n = (s: string) => lignes.filter((l) => l.subStatus === s).length;
+  const liste = filtre === "toutes" ? lignes : lignes.filter((l) => l.subStatus === filtre);
+
   return (
     <div>
       <div className="tools">
-        <div className="srch" style={{ width: 280 }}><input placeholder="Nom, NIF, email admin…" /></div>
-        <button className="chip on">Toutes · 49</button>
-        <button className="chip">Actives · 38</button>
-        <button className="chip">Essais · 9</button>
-        <button className="chip">Impayées · 2</button>
-        <button className="chip">Suspendues · 0</button>
+        <button className={`chip ${filtre === "toutes" ? "on" : ""}`} onClick={() => setFiltre("toutes")}>Toutes · {lignes.length}</button>
+        <button className={`chip ${filtre === "active" ? "on" : ""}`} onClick={() => setFiltre("active")}>Actives · {n("active")}</button>
+        <button className={`chip ${filtre === "trial" ? "on" : ""}`} onClick={() => setFiltre("trial")}>Essais · {n("trial")}</button>
+        <button className={`chip ${filtre === "past_due" ? "on" : ""}`} onClick={() => setFiltre("past_due")}>Impayées · {n("past_due")}</button>
+        <button className={`chip ${filtre === "suspended" ? "on" : ""}`} onClick={() => setFiltre("suspended")}>Suspendues · {n("suspended")}</button>
         <span className="sp" />
         <button className="btn btn-o btn-sm" onClick={() => toast("Export Excel des entreprises généré")}>⇩ Exporter</button>
         <button className="btn btn-p btn-sm" onClick={() => om("mNouvelleEntreprise")}>+ Créer une entreprise</button>
@@ -23,49 +58,27 @@ export default function Entreprises() {
       <div className="panel">
         <table>
           <tbody>
-            <tr><th>Entreprise</th><th>Plan</th><th className="num">Salariés</th><th className="num">Utilisateurs</th><th className="num">MRR (GNF)</th><th>Dernière paie</th><th>Statut</th><th></th></tr>
-            <tr>
-              <td><b>GARAYA HOLDING</b><br /><small style={{ color: "var(--gris)" }}>NIF 375106275 · Ratoma</small></td>
-              <td><span className="bg bg-v">Business</span></td><td className="gnf mono">24</td><td className="gnf mono">6</td><td className="gnf">950 000</td><td>Juin — clôturée</td>
-              <td><span className="bg bg-v">Active</span></td>
-              <td><Link className="btn btn-o btn-sm" href={fiche}>Ouvrir</Link></td>
-            </tr>
-            <tr>
-              <td><b>INJELEC-GUINÉE</b><br /><small style={{ color: "var(--gris)" }}>Électricité · Kaloum</small></td>
-              <td><span className="bg bg-v">Business</span></td><td className="gnf mono">42</td><td className="gnf mono">9</td><td className="gnf">950 000</td><td>Juin — clôturée</td>
-              <td><span className="bg bg-r">Impayée — j.12</span></td>
-              <td><button className="btn btn-o btn-sm" onClick={() => om("mRelance")}>Relancer</button> <Link className="btn btn-o btn-sm" href={fiche}>Ouvrir</Link></td>
-            </tr>
-            <tr>
-              <td><b>ENGUITRACI SARLU</b><br /><small style={{ color: "var(--gris)" }}>Transport · Kaloum · NIF 375106275</small></td>
-              <td><span className="bg bg-v">Starter</span></td><td className="gnf mono">17</td><td className="gnf mono">2</td><td className="gnf">450 000</td><td>Juin — clôturée</td>
-              <td><span className="bg bg-v">Active</span></td>
-              <td><Link className="btn btn-o btn-sm" href={fiche}>Ouvrir</Link></td>
-            </tr>
-            <tr>
-              <td><b>CABINET FIDUCIAIRE CKY</b><br /><small style={{ color: "var(--gris)" }}>Expertise comptable · 6 dossiers</small></td>
-              <td><span className="bg bg-b">Cabinet</span></td><td className="gnf mono">128</td><td className="gnf mono">4</td><td className="gnf">2 400 000</td><td>Juin ✓ (6/6)</td>
-              <td><span className="bg bg-v">Active</span></td>
-              <td><Link className="btn btn-o btn-sm" href={fiche}>Ouvrir</Link></td>
-            </tr>
-            <tr>
-              <td><b>SOGUIPAH SARL</b><br /><small style={{ color: "var(--gris)" }}>Agro-industrie · Conakry</small></td>
-              <td><span className="bg bg-o">Essai j.24/30</span></td><td className="gnf mono">31</td><td className="gnf mono">3</td><td className="gnf">—</td><td>Juin (brouillon)</td>
-              <td><span className="bg bg-o">Essai</span></td>
-              <td><Link className="btn btn-o btn-sm" href={fiche}>Ouvrir</Link></td>
-            </tr>
-            <tr>
-              <td><b>PHARMA PLUS SARLU</b><br /><small style={{ color: "var(--gris)" }}>Santé · Dixinn</small></td>
-              <td><span className="bg bg-v">Starter</span></td><td className="gnf mono">8</td><td className="gnf mono">2</td><td className="gnf">450 000</td><td>Juin — clôturée</td>
-              <td><span className="bg bg-v">Active</span></td>
-              <td><Link className="btn btn-o btn-sm" href={fiche}>Ouvrir</Link></td>
-            </tr>
+            <tr><th>Entreprise</th><th>Plan</th><th className="num">Salariés</th><th className="num">Utilisateurs</th><th className="num">MRR (GNF)</th><th>Statut</th><th></th></tr>
+            {liste.map((c) => (
+              <tr key={c.id}>
+                <td><b>{c.name}</b><br /><small style={{ color: "var(--gris)" }}>{c.nif ? `NIF ${c.nif} · ` : ""}{c.sector ?? ""} · {c.city ?? ""}</small></td>
+                <td><span className={`bg ${c.planNom === "Essai" ? "bg-o" : "bg-v"}`}>{c.planNom}</span></td>
+                <td className="gnf mono">{c.nbSalaries}</td>
+                <td className="gnf mono">{c.nbUsers}</td>
+                <td className="gnf">{c.mrr ? formatGNF(c.mrr) : "—"}</td>
+                <td>{c.subStatus === "active" ? <span className="bg bg-v">Active</span>
+                  : c.subStatus === "trial" ? <span className="bg bg-o">Essai</span>
+                  : c.subStatus === "suspended" ? <span className="bg bg-g">Suspendue</span>
+                  : <span className="bg bg-r">Impayée</span>}</td>
+                <td>
+                  {c.subStatus === "past_due" && <><button className="btn btn-o btn-sm" onClick={() => om("mRelance")}>Relancer</button>{" "}</>}
+                  <Link className="btn btn-o btn-sm" href={`/admin/entreprises/${c.id}`}>Ouvrir</Link>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
-        <div className="pgn">
-          <span>49 entreprises · 1 314 salariés gérés au total</span>
-          <div className="pgs"><button className="on">1</button><button>2</button><button>3</button><button>›</button></div>
-        </div>
+        <div className="pgn"><span>{lignes.length} entreprises · {lignes.reduce((s, l) => s + l.nbSalaries, 0)} salariés gérés au total</span></div>
       </div>
     </div>
   );
