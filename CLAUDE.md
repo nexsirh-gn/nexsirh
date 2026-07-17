@@ -127,7 +127,7 @@ docs/                  plan, guide A→Z
                       − indemnite_logement − indemnite_transport
                       − indemnite_cherte_vie − prime_repas        (cf. §6.4)
 6. rts              = barème progressif appliqué à net_imposable  (cf. §6.3)
-7. vf (patronal)    = assiette_vf × 6 %                           (cf. §6.5 ⚠)
+7. vf (patronal)    = assiette_vf × 6 %                           (cf. §6.5)
 8. cfpa (patronal)  = total_brut × 1,5 %
 9. net_a_payer      = total_brut − cnss_salariale − rts
                       − avances − prets − autres_retenues
@@ -142,7 +142,7 @@ Les barèmes et taux sont **lus en base** (`tax_brackets`,
 | Cotisation | Salariale | Patronale | Assiette |
 |---|---|---|---|
 | CNSS | 5 % | 18 % | brut plafonné à **2 500 000 GNF/mois** |
-| Versement Forfaitaire | — | 6 % | voir §6.5 ⚠ |
+| Versement Forfaitaire | — | 6 % | brut − MIN(150 000 ; 6 % × brut) — cf. §6.5 |
 | CFPA | — | 1,5 % | total brut |
 
 ### 6.3 Barème RTS v2026.1 (référence : dossier de passation)
@@ -171,16 +171,20 @@ Sont **exclues** du net imposable : indemnités de **logement**, **transport**,
 **cherté de vie** ET **prime de repas** (vérifié sur les 8 bulletins).
 La **prime d'ancienneté est imposable**.
 
-### 6.5 ⚠ Assiette du Versement Forfaitaire — À CONFIRMER (étape M)
+### 6.5 Assiette du Versement Forfaitaire — CONFIRMÉE (arbitrage du 17/07/2026)
 
-Les bulletins montrent deux comportements :
-- 6 salariés : `assiette_vf = brut − 150 000` (abattement fixe apparent) ;
-- 2 salariés (SYLLA, CAMARA) : `assiette_vf = brut × 94 %`.
+**Formule unique pour tous les salariés :**
 
-**Consigne :** implémenter l'assiette comme **paramètre de
-`contribution_rates`** (type d'abattement + valeur), écrire les tests sur les
-8 fixtures, et **demander l'arbitrage humain** avant de figer la règle.
-Ne jamais choisir silencieusement.
+```
+assiette_vf = brut − MIN(150 000 GNF ; 6 % × brut)
+```
+
+Vérifiée **0 GNF d'écart sur les 8 bulletins GARAYA**. Les deux comportements
+apparents des bulletins (abattement fixe vs brut × 94 %) sont les deux faces
+de la même formule : SYLLA et CAMARA tombent simplement sous le plafond
+(6 % × brut < 150 000). Le plafond (150 000) et le taux (6 %) restent des
+paramètres de `contribution_rates` (`abatement_type = 'min_fixed_rate'`,
+`abatement_value`), jamais codés en dur. Aucune surcharge par salarié.
 
 ### 6.6 Cycle de paie
 
@@ -240,8 +244,11 @@ CNSS = brut), **franchissement de tranche RTS** (PLEGNEMOU : 5 % + 8 %),
   transition. Absences non rémunérées → déduction transmise à la paie.
 - **Temps :** base légale 40 h/semaine, 173,33 h/mois. Heures sup :
   **+25 %** (8 premières h/sem.), **+50 %** au-delà, **+100 %** dimanches et
-  jours fériés. Cas de contrôle : 8 h à 25 % + 4 h à 50 % + 3 h à 100 % sur un
-  taux horaire de base 2 000 000/173,33 → **254 810 GNF** (test attendu).
+  jours fériés. **Formule (seule source de vérité, décision du 17/07/2026) :**
+  taux horaire = salaire_base / 173,33 ; montant = taux × (h25×1,25 + h50×1,5
+  + h100×2), **arrondi au GNF une seule fois sur le total final**.
+  (L'ancien cas de contrôle « 254 810 GNF » était une valeur illustrative de
+  maquette non vérifiée — supprimé ; la formule donne 253 851 pour ce cas.)
 - **Contrats :** âge minimum **16 ans** ; CDD ≤ **24 mois**, 1 renouvellement,
   date de fin obligatoire ; alertes à J-30 (CDD, pièces d'identité, fin
   d'essai).

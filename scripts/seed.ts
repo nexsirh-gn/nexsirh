@@ -14,8 +14,8 @@ import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import {
   calculerBulletin,
+  calculHeuresSup,
   type BaremePaie,
-  type VfAbatement,
 } from "../lib/paie";
 import {
   FIXTURES_GARAYA,
@@ -59,7 +59,7 @@ async function createUser(email: string) {
 const bareme: BaremePaie = {
   brackets: BAREME_RTS_V2026_1,
   cnss: COTISATIONS_V2026_1.cnss,
-  vf: { rate: COTISATIONS_V2026_1.vf.rate },
+  vf: COTISATIONS_V2026_1.vf,
   cfpa: COTISATIONS_V2026_1.cfpa,
 };
 
@@ -78,8 +78,8 @@ async function main() {
   })));
   await ins("contribution_rates", [
     { version_ref: "v2026.1", effective_from: "2026-01-01", code: "cnss", employee_rate: 0.05, employer_rate: 0.18, ceiling: 2_500_000 },
-    // ⚠ Assiette VF par défaut : abattement fixe 150 000 (§6.5 — arbitrage humain requis avant de figer)
-    { version_ref: "v2026.1", effective_from: "2026-01-01", code: "vf", employee_rate: 0, employer_rate: 0.06, abatement_type: "fixed", abatement_value: 150_000 },
+    // Assiette VF (confirmée 17/07/2026) : brut − MIN(150 000 ; 6 % × brut)
+    { version_ref: "v2026.1", effective_from: "2026-01-01", code: "vf", employee_rate: 0, employer_rate: 0.06, abatement_type: "min_fixed_rate", abatement_value: 150_000 },
     { version_ref: "v2026.1", effective_from: "2026-01-01", code: "cfpa", employee_rate: 0, employer_rate: 0.015 },
   ]);
   await ins("public_holidays", [
@@ -195,9 +195,6 @@ async function main() {
       base_salary: f.entree.baseSalary, seniority_bonus: f.entree.seniorityBonus,
       meal_allowance: f.entree.mealAllowance, housing_allowance: f.entree.housingAllowance,
       transport_allowance: f.entree.transportAllowance, cost_of_living_allowance: f.entree.costOfLivingAllowance,
-      // ⚠ surcharge VF uniquement si différente du défaut (SYLLA & CAMARA : brut × 94 %)
-      vf_abatement_type: f.vfAbatement.type === "percent" ? "percent" : null,
-      vf_abatement_value: f.vfAbatement.type === "percent" ? f.vfAbatement.value : null,
     }, "employee_id");
   }
   // Hiérarchie : PLEGNEMOU (R.A.F) manage DAF+CONF ; TOLNO manage DRH
@@ -234,7 +231,6 @@ async function main() {
       status: "brouillon", generated_at: `2026-0${month}-10T09:14:00Z`, bareme_version: "v2026.1",
     }) as { id: string }[];
     for (const f of FIXTURES_GARAYA) {
-      const abatement: VfAbatement = f.vfAbatement;
       const b = calculerBulletin(
         {
           baseSalary: f.entree.baseSalary, seniorityBonus: f.entree.seniorityBonus,
@@ -242,7 +238,7 @@ async function main() {
           transportAllowance: f.entree.transportAllowance, costOfLivingAllowance: f.entree.costOfLivingAllowance,
         },
         bareme,
-        { vfAbatement: abatement, retenues: f.entree.retenues }
+        { retenues: f.entree.retenues }
       );
       await ins("payslips", {
         company_id: G, payroll_run_id: run.id, employee_id: empIds[f.matricule],
@@ -293,8 +289,8 @@ async function main() {
   // ---------- Temps : juillet 2026 (cas CONTE = 8h/4h/3h → 254 810 GNF) ----------
   await ins("timesheets", [
     { company_id: G, employee_id: empIds["EMP-002"], period_year: 2026, period_month: 7, total_hours: 173.3, overtime_25: 0, overtime_50: 0, overtime_100: 0, overtime_amount: 0, status: "valide" },
-    { company_id: G, employee_id: empIds["EMP-006"], period_year: 2026, period_month: 7, total_hours: 181.3, overtime_25: 8, overtime_50: 0, overtime_100: 0, overtime_amount: 86_540, status: "valide" },
-    { company_id: G, employee_id: empIds["EMP-010"], period_year: 2026, period_month: 7, total_hours: 188.3, overtime_25: 8, overtime_50: 4, overtime_100: 3, overtime_amount: 254_810, status: "a_valider" },
+    { company_id: G, employee_id: empIds["EMP-006"], period_year: 2026, period_month: 7, total_hours: 181.3, overtime_25: 8, overtime_50: 0, overtime_100: 0, overtime_amount: calculHeuresSup(1_500_000, 173.33, { h25: 8, h50: 0, h100: 0 }), status: "valide" },
+    { company_id: G, employee_id: empIds["EMP-010"], period_year: 2026, period_month: 7, total_hours: 188.3, overtime_25: 8, overtime_50: 4, overtime_100: 3, overtime_amount: calculHeuresSup(2_000_000, 173.33, { h25: 8, h50: 4, h100: 3 }), status: "a_valider" },
     { company_id: G, employee_id: empIds["EMP-008"], period_year: 2026, period_month: 7, total_hours: 166.3, overtime_25: 0, overtime_50: 0, overtime_100: 0, overtime_amount: 0, status: "a_valider" },
   ]);
 

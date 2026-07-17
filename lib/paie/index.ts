@@ -16,7 +16,8 @@ export interface TrancheRTS {
 export interface BaremePaie {
   brackets: TrancheRTS[];
   cnss: { employeeRate: number; employerRate: number; ceiling: number };
-  vf: { rate: number };
+  /** VF : assiette = brut − MIN(abatementCap ; rate × brut) — décision du 17/07/2026 */
+  vf: { rate: number; abatementCap: number };
   cfpa: { rate: number };
 }
 
@@ -31,12 +32,7 @@ export interface ElementsRemuneration {
   otherBonuses?: number;
 }
 
-export type VfAbatement =
-  | { type: "fixed"; value: number } // assiette = brut − value
-  | { type: "percent"; value: number }; // assiette = brut × value %
-
 export interface OptionsBulletin {
-  vfAbatement: VfAbatement;
   retenues?: number; // avances + prêts + autres retenues
 }
 
@@ -122,20 +118,33 @@ export function calculRTSExact(ni: number, brackets: TrancheRTS[]): number {
 
 /**
  * 7. Versement Forfaitaire (patronal).
- * ⚠ Assiette À CONFIRMER (§6.5 — arbitrage humain requis) : le type
- * d'abattement est un PARAMÈTRE (contribution_rates / surcharge salarié),
- * jamais une règle tranchée silencieusement.
+ * Assiette CONFIRMÉE (arbitrage humain du 17/07/2026, vérifiée 0 GNF d'écart
+ * sur les 8 bulletins GARAYA) :
+ *   assiette_vf = brut − MIN(abatementCap ; rate × brut)
+ * Le plafond d'abattement (150 000) et le taux viennent de contribution_rates.
  */
 export function calculVF(
   brut: number,
   rate: number,
-  abatement: VfAbatement
+  abatementCap: number
 ): { base: number; vf: number } {
-  const base =
-    abatement.type === "fixed"
-      ? Math.max(0, brut - abatement.value)
-      : brut * (abatement.value / 100);
+  const base = brut - Math.min(abatementCap, brut * rate);
   return { base, vf: base * rate };
+}
+
+/**
+ * Heures supplémentaires — seule source de vérité (décision du 17/07/2026) :
+ * taux horaire = salaire de base / heures mensuelles (173,33), majorations
+ * +25 % / +50 % / +100 %, arrondi au GNF UNE SEULE FOIS sur le total final.
+ */
+export function calculHeuresSup(
+  baseSalary: number,
+  monthlyHours: number,
+  hs: { h25: number; h50: number; h100: number }
+): number {
+  const tauxHoraire = baseSalary / monthlyHours;
+  const total = tauxHoraire * (hs.h25 * 1.25 + hs.h50 * 1.5 + hs.h100 * 2);
+  return arrondirGNF(total);
 }
 
 /** 8. CFPA (patronal) = brut × taux */
@@ -147,14 +156,14 @@ export function calculCFPA(brut: number, rate: number): number {
 export function calculerBulletin(
   e: ElementsRemuneration,
   bareme: BaremePaie,
-  opts: OptionsBulletin
+  opts: OptionsBulletin = {}
 ): BulletinCalcule {
   const brut = calculBrut(e);
   const base = baseCNSS(brut, bareme.cnss.ceiling);
   const cnss = cotisationsCNSS(base, bareme.cnss);
   const ni = netImposable(brut, cnss.salariale, e);
   const rtsExact = calculRTSExact(ni, bareme.brackets);
-  const { base: vfBase, vf: vfExact } = calculVF(brut, bareme.vf.rate, opts.vfAbatement);
+  const { base: vfBase, vf: vfExact } = calculVF(brut, bareme.vf.rate, bareme.vf.abatementCap);
   const cfpaExact = calculCFPA(brut, bareme.cfpa.rate);
   const retenues = opts.retenues ?? 0;
 
