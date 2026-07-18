@@ -43,10 +43,10 @@ export default function Documents() {
   if (error) return <div className="alert rg"><span className="ic">⚠</span><div>Erreur : {error}</div></div>;
   const d = data!;
 
-  function telecharger(type: string, params: Record<string, string> = {}) {
-    const qs = new URLSearchParams({ type, ...params }).toString();
+  function telecharger(type: string, params: Record<string, string> = {}, format: "pdf" | "xlsx" = "pdf") {
+    const qs = new URLSearchParams({ type, ...params, ...(format === "xlsx" ? { format } : {}) }).toString();
     window.location.assign(`/api/documents/generer?${qs}`);
-    toast("Génération du PDF en cours…");
+    toast(`Génération du ${format === "xlsx" ? "classeur Excel" : "PDF"} en cours…`);
     setModal(null);
     setEmployeId("");
     setTimeout(refresh, 1500); // recharge la liste après archivage des métadonnées
@@ -73,10 +73,13 @@ export default function Documents() {
               return (
                 <tr key={type}>
                   <td>📄 {libelle}</td>
-                  <td style={{ textAlign: "right" }}>
+                  <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                     {besoinRun && !d.run
                       ? <span className="note">aucune paie générée</span>
-                      : <button className="btn btn-o btn-sm" onClick={() => telecharger(type, besoinRun ? { run: d.run!.id } : {})}>⇩ Générer le PDF</button>}
+                      : <>
+                          <button className="btn btn-o btn-sm" onClick={() => telecharger(type, besoinRun ? { run: d.run!.id } : {})}>⇩ Générer le PDF</button>{" "}
+                          <button className="btn btn-o btn-sm" onClick={() => telecharger(type, besoinRun ? { run: d.run!.id } : {}, "xlsx")}>⇩ Générer le Excel</button>
+                        </>}
                   </td>
                 </tr>
               );

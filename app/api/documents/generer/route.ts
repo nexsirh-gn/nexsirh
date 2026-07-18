@@ -8,6 +8,24 @@ import {
   type Entreprise, type Salarie, type LignePaie,
 } from "@/lib/pdf/documents";
 import { calculerSoldeToutCompte, BAREME_STC_DEFAUT, type MotifDepart } from "@/lib/paie/solde";
+import {
+  xlsxDeclarationCnss, xlsxEtatRts, xlsxEtatSalaires, xlsxJournalPaie,
+  xlsxRegistrePersonnel, xlsxSuiviConges, xlsxFicheIndividuelle,
+} from "@/lib/excel/documents";
+
+const TYPES_XLSX = ["declaration_cnss", "etat_rts", "etat_salaires", "journal_paie",
+  "registre_personnel", "suivi_conges", "fiche_individuelle"];
+
+function reponseFichier(contenu: Uint8Array | Buffer, nom: string, xlsx: boolean) {
+  return new NextResponse(Buffer.from(contenu), {
+    headers: {
+      "Content-Type": xlsx
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "application/pdf",
+      "Content-Disposition": `attachment; filename="${nom}.${xlsx ? "xlsx" : "pdf"}"`,
+    },
+  });
+}
 
 const MOIS = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
@@ -58,14 +76,19 @@ export async function GET(req: Request) {
   const type = url.searchParams.get("type") ?? "";
   const employeeId = url.searchParams.get("employee");
   const runId = url.searchParams.get("run");
+  const xlsx = url.searchParams.get("format") === "xlsx";
   if (!TITRES[type]) return erreur(`Type de document inconnu : ${type}`);
+  if (xlsx && !TYPES_XLSX.includes(type)) {
+    return erreur(`Le format Excel n'est pas disponible pour « ${TITRES[type]} » (PDF uniquement).`);
+  }
 
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return erreur("Non connecté.", 401);
 
   const { data: profil } = await sb.from("profiles")
-    .select("company_id, role").eq("id", user.id).single();
+    .select("company_id, role, full_name").eq("id", user.id).single();
+  const auteur = profil?.full_name ?? "Utilisateur";
 
   // Documents d'entreprise : réservés aux rôles paie/RH (un employé n'a pas
   // à produire un journal de paie, même limité à sa propre ligne par la RLS)
@@ -78,7 +101,7 @@ export async function GET(req: Request) {
   if (!comp) return erreur("Entreprise introuvable.", 404);
   const entreprise: Entreprise = comp;
 
-  let pdf: Uint8Array;
+  let contenu: Uint8Array | Buffer;
   let periode: string | null = null;
   let nomFichier = type;
 
@@ -89,16 +112,25 @@ export async function GET(req: Request) {
     if (!s) return erreur("Salarié introuvable ou accès refusé.", 404);
     nomFichier = `${type}_${s.matricule}`;
 
-    if (type === "attestation_travail") pdf = await attestationTravail(entreprise, s);
-    else if (type === "certificat_travail") pdf = await certificatTravail(entreprise, s);
-    else if (type === "fiche_individuelle") pdf = await ficheIndividuelle(entreprise, s);
+    if (type === "attestation_travail") contenu = await attestationTravail(entreprise, s);
+    else if (type === "certificat_travail") contenu = await certificatTravail(entreprise, s);
+    else if (type === "fiche_individuelle") {
+      if (xlsx) {
+        const { data: comp } = await sb.from("employee_compensation")
+          .select("base_salary, seniority_bonus, meal_allowance, housing_allowance, transport_allowance, cost_of_living_allowance")
+          .eq("employee_id", employeeId).maybeSingle();
+        contenu = await xlsxFicheIndividuelle(entreprise, { ...s, comp }, auteur);
+      } else {
+        contenu = await ficheIndividuelle(entreprise, s);
+      }
+    }
     else if (type === "certificat_conge") {
       const { data: conge } = await sb.from("leave_requests")
         .select("start_date, end_date, working_days, leave_type_code")
         .eq("employee_id", employeeId).eq("status", "approuve")
         .order("start_date", { ascending: false }).limit(1).maybeSingle();
       if (!conge) return erreur("Aucun congé approuvé pour ce salarié.", 404);
-      pdf = await certificatConge(entreprise, s, conge);
+      contenu = await certificatConge(entreprise, s, conge);
     } else {
       // Solde de tout compte : CALCUL COMPLET (congés, prorata, licenciement, préavis)
       // Nécessite la rémunération → la RLS la réserve aux rôles admin/rh/dg.
@@ -134,7 +166,7 @@ export async function GET(req: Request) {
         preavisEffectue,
         bareme: BAREME_STC_DEFAUT,
       });
-      pdf = await soldeToutCompte(entreprise, s, { motif, ...resultat });
+      contenu = await soldeToutCompte(entreprise, s, { motif, ...resultat });
     }
   }
 
@@ -145,43 +177,66 @@ export async function GET(req: Request) {
     if (!paie || paie.lignes.length === 0) return erreur("Période de paie introuvable ou accès refusé.", 404);
     periode = paie.periodeCode;
     nomFichier = `${type}_${paie.periodeCode}`;
-    if (type === "journal_paie") pdf = await journalPaie(entreprise, paie.periode, paie.lignes);
-    else if (type === "etat_rts") pdf = await etatRts(entreprise, paie.periode, paie.lignes);
-    else if (type === "declaration_cnss") pdf = await declarationCnss(entreprise, paie.periode, paie.lignes);
-    else pdf = await etatSalaires(entreprise, paie.periode, paie.lignes);
+    if (xlsx) {
+      // N° CNSS des salariés pour la déclaration (jointure best effort)
+      const { data: empsCnss } = await sb.from("employees").select("id, cnss_number");
+      const cnssMap = new Map((empsCnss ?? []).map((x) => [x.id, x.cnss_number]));
+      const lignes = paie.lignes.map((l) => ({
+        ...l,
+        cnss_number: cnssMap.get((l as unknown as { employee_id: string }).employee_id) ?? null,
+      }));
+      if (type === "journal_paie") contenu = await xlsxJournalPaie(entreprise, paie.periode, lignes, auteur);
+      else if (type === "etat_rts") contenu = await xlsxEtatRts(entreprise, paie.periode, lignes, auteur);
+      else if (type === "declaration_cnss") contenu = await xlsxDeclarationCnss(entreprise, paie.periode, lignes, auteur);
+      else contenu = await xlsxEtatSalaires(entreprise, paie.periode, lignes, auteur);
+    } else if (type === "journal_paie") contenu = await journalPaie(entreprise, paie.periode, paie.lignes);
+    else if (type === "etat_rts") contenu = await etatRts(entreprise, paie.periode, paie.lignes);
+    else if (type === "declaration_cnss") contenu = await declarationCnss(entreprise, paie.periode, paie.lignes);
+    else contenu = await etatSalaires(entreprise, paie.periode, paie.lignes);
   }
 
   // ----- Registres (entreprise entière) -----
   else if (type === "registre_personnel") {
-    const { data: emps } = await sb.from("employees")
-      .select("*, positions(title), departments(name)").order("matricule");
+    const [{ data: emps }, { data: compsReg }] = await Promise.all([
+      sb.from("employees").select("*, positions(title), departments(name)").order("matricule"),
+      sb.from("employee_compensation").select("employee_id, base_salary, seniority_bonus, meal_allowance, housing_allowance, transport_allowance, cost_of_living_allowance, other_bonuses"),
+    ]);
     if (!emps || emps.length === 0) return erreur("Aucun salarié visible.", 404);
+    const brutMap = new Map((compsReg ?? []).map((c) => [c.employee_id,
+      c.base_salary + c.seniority_bonus + c.meal_allowance + c.housing_allowance +
+      c.transport_allowance + c.cost_of_living_allowance + c.other_bonuses]));
     const salaries = emps.map((d) => ({
       ...d,
       poste: (d.positions as { title: string } | null)?.title ?? null,
       departement: (d.departments as { name: string } | null)?.name ?? null,
-    })) as Salarie[];
-    pdf = await registrePersonnel(entreprise, salaries);
+      brut: brutMap.get(d.id) ?? null,
+    })) as (Salarie & { brut: number | null })[];
+    contenu = xlsx
+      ? await xlsxRegistrePersonnel(entreprise, salaries, auteur)
+      : await registrePersonnel(entreprise, salaries);
   } else {
     // suivi_conges
     const annee = 2026;
     periode = String(annee);
     const { data: balances } = await sb.from("leave_balances")
-      .select("entitled_days, seniority_bonus_days, carryover_days, taken_days, employees(matricule, first_name, last_name)")
+      .select("entitled_days, seniority_bonus_days, carryover_days, taken_days, employees(matricule, first_name, last_name, hire_date)")
       .eq("year", annee);
     if (!balances || balances.length === 0) return erreur("Aucun solde de congés visible.", 404);
     const lignes = balances
       .map((b) => {
-        const emp = b.employees as unknown as { matricule: string; first_name: string; last_name: string } | null;
+        const emp = b.employees as unknown as { matricule: string; first_name: string; last_name: string; hire_date: string } | null;
         return {
           matricule: emp?.matricule ?? "—",
           nom: emp ? `${emp.last_name} ${emp.first_name}` : "—",
+          embauche: emp?.hire_date ?? "",
           acquis: b.entitled_days, anciennete: b.seniority_bonus_days,
           report: b.carryover_days, pris: b.taken_days,
         };
       })
       .sort((a, b) => a.matricule.localeCompare(b.matricule));
-    pdf = await suiviConges(entreprise, annee, lignes);
+    contenu = xlsx
+      ? await xlsxSuiviConges(entreprise, annee, lignes, auteur)
+      : await suiviConges(entreprise, annee, lignes);
   }
 
   // ----- Archivage des métadonnées (au mieux : la RLS peut refuser selon le rôle) -----
@@ -196,10 +251,5 @@ export async function GET(req: Request) {
     generated_by: user.id,
   });
 
-  return new NextResponse(Buffer.from(pdf), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${nomFichier}.pdf"`,
-    },
-  });
+  return reponseFichier(contenu, nomFichier, xlsx);
 }

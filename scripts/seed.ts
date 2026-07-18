@@ -269,7 +269,10 @@ async function main() {
 
   // ---------- Congés : soldes + demandes ----------
   for (const f of FIXTURES_GARAYA) {
-    const anc = new Date("2026-07-01").getFullYear() - new Date(META[f.matricule].hire).getFullYear();
+    // Années RÉVOLUES (pas années civiles) — 1 j par tranche de 5 ans (§8)
+    const anc = Math.floor(
+      (Date.now() - new Date(META[f.matricule].hire).getTime()) / (365.25 * 86400e3)
+    );
     await ins("leave_balances", {
       company_id: G, employee_id: empIds[f.matricule], year: 2026,
       entitled_days: 17.5, seniority_bonus_days: Math.floor(anc / 5),

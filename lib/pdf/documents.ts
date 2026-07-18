@@ -11,6 +11,10 @@ export interface Salarie {
   contract_end_date: string | null; exit_date: string | null; status: string;
   address: string | null; phone: string | null; email: string | null;
   poste: string | null; departement: string | null;
+  marital_status?: string | null; children_count?: number | null;
+  id_doc_number?: string | null; id_doc_expiry?: string | null;
+  emergency_contact_name?: string | null; emergency_contact_phone?: string | null;
+  bank_name?: string | null; bank_account?: string | null;
 }
 
 const nomComplet = (s: Salarie) => `${s.civility ?? ""} ${s.first_name} ${s.last_name.toUpperCase()}`.trim();

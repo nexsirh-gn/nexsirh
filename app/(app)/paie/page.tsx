@@ -69,7 +69,9 @@ export default function Paie() {
         <span className="note">{run.generated_at ? `Générée le ${new Date(run.generated_at).toLocaleDateString("fr-FR")}` : ""} · {slips.length} bulletins</span>
         <span className="sp" />
         <a className="btn btn-o" href={`/api/documents/generer?type=journal_paie&run=${run.id}`}
-          onClick={() => toast("Génération du journal de paie PDF…")}>📒 Journal de paie ⇩</a>
+          onClick={() => toast("Génération du journal de paie PDF…")}>📒 Journal PDF ⇩</a>
+        <a className="btn btn-o" href={`/api/documents/generer?type=journal_paie&run=${run.id}&format=xlsx`}
+          onClick={() => toast("Génération du journal de paie Excel…")}>📊 Journal Excel ⇩</a>
         {run.status !== "cloture" && (
           <button className="btn btn-or" onClick={() => setModalCloture(true)}>🔒 Clôturer la période</button>
         )}

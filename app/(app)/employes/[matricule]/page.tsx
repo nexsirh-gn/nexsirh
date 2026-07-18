@@ -292,12 +292,13 @@ export default function FicheEmploye() {
                 ["attestation_travail", "📃 Attestation de travail"],
                 ["certificat_travail", "📜 Certificat de travail"],
                 ["certificat_conge", "🌴 Certificat de congé (dernier approuvé)"],
-                ["fiche_individuelle", "🗂 Fiche individuelle"],
+                ["fiche_individuelle", "🗂 Fiche individuelle (PDF)"],
+                ["fiche_individuelle&format=xlsx", "📊 Fiche individuelle (Excel)"],
                 ["solde_tout_compte", "🧾 Solde de tout compte (motif & préavis : page Documents)"],
               ].map(([type, libelle]) => (
-                <a key={type} className="btn btn-o" style={{ justifyContent: "flex-start" }}
-                  href={`/api/documents/generer?type=${type}&employee=${emp.id}`}
-                  onClick={() => { toast("Génération du PDF…"); setModalDoc(false); setTimeout(refresh, 1500); }}>
+                <a key={libelle} className="btn btn-o" style={{ justifyContent: "flex-start" }}
+                  href={`/api/documents/generer?type=${type.replace("&format=xlsx", "")}&employee=${emp.id}${type.includes("xlsx") ? "&format=xlsx" : ""}`}
+                  onClick={() => { toast("Génération du document…"); setModalDoc(false); setTimeout(refresh, 1500); }}>
                   {libelle}
                 </a>
               ))}
