@@ -17,6 +17,7 @@ export default function FicheEmploye() {
   const mat = decodeURIComponent(matricule).toUpperCase();
   const [tab, setTab] = useState<Tab>("ft1");
   const [modalMvt, setModalMvt] = useState(false);
+  const [modalDoc, setModalDoc] = useState(false);
   const [nouveauSalaire, setNouveauSalaire] = useState("");
   const [motif, setMotif] = useState("");
   const [pending, setPending] = useState(false);
@@ -100,7 +101,7 @@ export default function FicheEmploye() {
           </span>
         </div>
         <button className="btn btn-o" onClick={() => setModalMvt(true)}>⇄ Nouveau mouvement</button>
-        <button className="btn btn-o" onClick={() => om("mGenererDoc")}>📄 Générer un document</button>
+        <button className="btn btn-o" onClick={() => setModalDoc(true)}>📄 Générer un document</button>
         <button className="btn btn-p" onClick={() => om("mModifEmploye")}>✎ Modifier</button>
       </div>
 
@@ -238,7 +239,7 @@ export default function FicheEmploye() {
 
       {tab === "ft5" && (
         <div className="panel">
-          <div className="hd"><h3>Documents du salarié</h3><span className="sp" /><button className="btn btn-p btn-sm" onClick={() => om("mGenererDoc")}>+ Générer</button></div>
+          <div className="hd"><h3>Documents du salarié</h3><span className="sp" /><button className="btn btn-p btn-sm" onClick={() => setModalDoc(true)}>+ Générer</button></div>
           <table>
             <tbody>
               <tr><th>Document</th><th>Période / objet</th><th>Généré le</th><th></th></tr>
@@ -273,6 +274,36 @@ export default function FicheEmploye() {
                 </div>
               ))}
               <div className="tl"><small>{new Date(emp.hire_date).toLocaleDateString("fr-FR")} · système</small><b>Embauche</b> — {emp.contract_type}.</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale documents — téléchargements réels */}
+      {modalDoc && (
+        <div className="ovl" onClick={(e) => e.target === e.currentTarget && setModalDoc(false)}>
+          <div className="mdl sm">
+            <div className="mh">
+              <div><h3>📄 Générer un document</h3><p>{nom} — PDF pré-rempli et archivé automatiquement.</p></div>
+              <button className="x" onClick={() => setModalDoc(false)}>✕</button>
+            </div>
+            <div className="mb" style={{ display: "grid", gap: 8 }}>
+              {[
+                ["attestation_travail", "📃 Attestation de travail"],
+                ["certificat_travail", "📜 Certificat de travail"],
+                ["certificat_conge", "🌴 Certificat de congé (dernier approuvé)"],
+                ["fiche_individuelle", "🗂 Fiche individuelle"],
+                ["solde_tout_compte", "🧾 Solde de tout compte"],
+              ].map(([type, libelle]) => (
+                <a key={type} className="btn btn-o" style={{ justifyContent: "flex-start" }}
+                  href={`/api/documents/generer?type=${type}&employee=${emp.id}`}
+                  onClick={() => { toast("Génération du PDF…"); setModalDoc(false); setTimeout(refresh, 1500); }}>
+                  {libelle}
+                </a>
+              ))}
+            </div>
+            <div className="mf">
+              <button className="btn btn-g" onClick={() => setModalDoc(false)}>Fermer</button>
             </div>
           </div>
         </div>

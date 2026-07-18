@@ -22,7 +22,8 @@ const VERT = rgb(0.06, 0.36, 0.29);
 const ENCRE = rgb(0.11, 0.14, 0.13);
 const GRIS = rgb(0.36, 0.42, 0.4);
 
-const gnf = (n: number) => Math.round(n).toLocaleString("fr-FR").replace(/ | /g, " ");
+const gnf = (n: number) =>
+  Math.round(n).toLocaleString("fr-FR").replace(/[\u202F\u00A0]/g, " ");
 
 export async function genererBulletinPDF(d: DonneesBulletin): Promise<Uint8Array> {
   const doc = await PDFDocument.create();

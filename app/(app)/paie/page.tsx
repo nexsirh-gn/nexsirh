@@ -68,7 +68,8 @@ export default function Paie() {
         <span className={`bg ${run.status === "brouillon" ? "bg-o" : run.status === "cloture" ? "bg-g" : "bg-v"}`}>{libStatut}</span>
         <span className="note">{run.generated_at ? `Générée le ${new Date(run.generated_at).toLocaleDateString("fr-FR")}` : ""} · {slips.length} bulletins</span>
         <span className="sp" />
-        <button className="btn btn-o" onClick={() => om("mJournal")}>📒 Journal de paie</button>
+        <a className="btn btn-o" href={`/api/documents/generer?type=journal_paie&run=${run.id}`}
+          onClick={() => toast("Génération du journal de paie PDF…")}>📒 Journal de paie ⇩</a>
         {run.status !== "cloture" && (
           <button className="btn btn-or" onClick={() => setModalCloture(true)}>🔒 Clôturer la période</button>
         )}
@@ -114,8 +115,8 @@ export default function Paie() {
           <div className="hd"><h3>Déclarations à produire</h3></div>
           <table>
             <tbody>
-              <tr><td>📄 État RTS mensuel — format eTax (DNI)</td><td className="gnf mono">{formatGNF(totRts)} GNF</td><td style={{ textAlign: "right" }}><button className="btn btn-o btn-sm" onClick={() => om("mDocsAdmin")}>Générer</button></td></tr>
-              <tr><td>📄 Déclaration CNSS mensuelle</td><td className="gnf mono">{formatGNF(totCnss)} GNF</td><td style={{ textAlign: "right" }}><button className="btn btn-o btn-sm" onClick={() => om("mDocsAdmin")}>Générer</button></td></tr>
+              <tr><td>📄 État RTS mensuel — format eTax (DNI)</td><td className="gnf mono">{formatGNF(totRts)} GNF</td><td style={{ textAlign: "right" }}><a className="btn btn-o btn-sm" href={`/api/documents/generer?type=etat_rts&run=${run.id}`} onClick={() => toast("Génération de l’état RTS…")}>⇩ Générer</a></td></tr>
+              <tr><td>📄 Déclaration CNSS mensuelle</td><td className="gnf mono">{formatGNF(totCnss)} GNF</td><td style={{ textAlign: "right" }}><a className="btn btn-o btn-sm" href={`/api/documents/generer?type=declaration_cnss&run=${run.id}`} onClick={() => toast("Génération de la déclaration CNSS…")}>⇩ Générer</a></td></tr>
               <tr><td>🏦 Ordre de virement groupé</td><td className="gnf mono">{formatGNF(totNet)} GNF</td><td style={{ textAlign: "right" }}><button className="btn btn-o btn-sm" onClick={() => toast("Fichier de virements exporté")}>Exporter</button></td></tr>
             </tbody>
           </table>
