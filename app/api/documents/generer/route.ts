@@ -7,6 +7,7 @@ import {
   registrePersonnel, suiviConges,
   type Entreprise, type Salarie, type LignePaie,
 } from "@/lib/pdf/documents";
+import { calculerSoldeToutCompte, BAREME_STC_DEFAUT, type MotifDepart } from "@/lib/paie/solde";
 
 const MOIS = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
@@ -99,24 +100,41 @@ export async function GET(req: Request) {
       if (!conge) return erreur("Aucun congé approuvé pour ce salarié.", 404);
       pdf = await certificatConge(entreprise, s, conge);
     } else {
-      // solde de tout compte
-      const [{ data: solde }, { data: dernier }] = await Promise.all([
+      // Solde de tout compte : CALCUL COMPLET (congés, prorata, licenciement, préavis)
+      // Nécessite la rémunération → la RLS la réserve aux rôles admin/rh/dg.
+      const motif = (url.searchParams.get("motif") ?? "licenciement") as MotifDepart;
+      const preavisEffectue = url.searchParams.get("preavis") !== "non_effectue";
+      if (!["demission", "licenciement", "fin_cdd", "retraite"].includes(motif)) {
+        return erreur("Motif invalide (demission | licenciement | fin_cdd | retraite).");
+      }
+      const [{ data: solde }, { data: comp2 }] = await Promise.all([
         sb.from("leave_balances")
           .select("entitled_days, seniority_bonus_days, carryover_days, taken_days")
           .eq("employee_id", employeeId).eq("year", 2026).maybeSingle(),
-        sb.from("payslips")
-          .select("net_pay, payroll_runs(period_year, period_month)")
-          .eq("employee_id", employeeId)
-          .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        sb.from("employee_compensation")
+          .select("base_salary, seniority_bonus, meal_allowance, housing_allowance, transport_allowance, cost_of_living_allowance, other_bonuses")
+          .eq("employee_id", employeeId).maybeSingle(),
       ]);
-      const run = dernier?.payroll_runs as unknown as { period_year: number; period_month: number } | null;
-      pdf = await soldeToutCompte(entreprise, s, {
+      if (!comp2) return erreur("Rémunération non accessible : le solde de tout compte est réservé aux rôles RH.", 403);
+      const brutMensuel =
+        comp2.base_salary + comp2.seniority_bonus + comp2.meal_allowance +
+        comp2.housing_allowance + comp2.transport_allowance +
+        comp2.cost_of_living_allowance + comp2.other_bonuses;
+      const resultat = calculerSoldeToutCompte({
+        brutMensuel,
+        categorie: (s as unknown as { category?: string }).category ?? "Employé",
+        ancienneteAnnees: Math.floor(
+          (Date.now() - new Date(s.hire_date).getTime()) / (365.25 * 86400e3)
+        ),
         soldeConges: solde
           ? solde.entitled_days + solde.seniority_bonus_days + solde.carryover_days - solde.taken_days
           : 0,
-        dernierNet: dernier?.net_pay ?? null,
-        dernierePeriode: run ? `${MOIS[run.period_month]} ${run.period_year}` : null,
+        dateSortie: s.exit_date ? new Date(s.exit_date) : new Date(),
+        motif,
+        preavisEffectue,
+        bareme: BAREME_STC_DEFAUT,
       });
+      pdf = await soldeToutCompte(entreprise, s, { motif, ...resultat });
     }
   }
 

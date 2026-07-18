@@ -293,7 +293,7 @@ export default function FicheEmploye() {
                 ["certificat_travail", "📜 Certificat de travail"],
                 ["certificat_conge", "🌴 Certificat de congé (dernier approuvé)"],
                 ["fiche_individuelle", "🗂 Fiche individuelle"],
-                ["solde_tout_compte", "🧾 Solde de tout compte"],
+                ["solde_tout_compte", "🧾 Solde de tout compte (motif & préavis : page Documents)"],
               ].map(([type, libelle]) => (
                 <a key={type} className="btn btn-o" style={{ justifyContent: "flex-start" }}
                   href={`/api/documents/generer?type=${type}&employee=${emp.id}`}

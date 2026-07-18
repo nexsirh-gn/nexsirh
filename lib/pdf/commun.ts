@@ -9,7 +9,14 @@ export const GRIS = rgb(0.36, 0.42, 0.4);
 export const MENTHE = rgb(0.906, 0.949, 0.933);
 
 // U+202F (espace fine insécable) et U+00A0 : non encodables en WinAnsi → espace simple
-export const versWinAnsi = (t: string) => t.replace(/[\u202F\u00A0\u2011\u2019]/g, (m) => (m === "\u2019" ? "'" : m === "\u2011" ? "-" : " "));
+const HORS_WINANSI: Record<string, string> = {
+  "\u202F": " ", "\u00A0": " ",   // espaces ins\u00E9cables (toLocaleString fr-FR)
+  "\u2011": "-", "\u2019": "'",   // trait d'union ins\u00E9cable, apostrophe courbe
+  "\u2192": "=", "\u2190": "=",   // fl\u00E8ches
+  "\u2713": "OK", "\u00D7": "x",  // coche, signe multiplication
+};
+export const versWinAnsi = (t: string) =>
+  t.replace(/[\u202F\u00A0\u2011\u2019\u2192\u2190\u2713\u00D7]/g, (m) => HORS_WINANSI[m] ?? " ");
 export const gnf = (n: number) => versWinAnsi(Math.round(n).toLocaleString("fr-FR"));
 export const nombre = (n: number) => versWinAnsi(n.toLocaleString("fr-FR"));
 export const dateFr = (d: string | Date) => new Date(d).toLocaleDateString("fr-FR");

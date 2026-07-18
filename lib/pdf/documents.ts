@@ -92,42 +92,52 @@ export async function certificatConge(
 
 export async function soldeToutCompte(
   e: Entreprise, s: Salarie,
-  d: { soldeConges: number; dernierNet: number | null; dernierePeriode: string | null }
+  d: {
+    motif: string;
+    lignes: { libelle: string; detail: string; montant: number }[];
+    total: number;
+  }
 ): Promise<Uint8Array> {
   const p = await PagePDF.creer();
   p.entete({ entreprise: e, titre: "Reçu pour solde de tout compte", sousTitre: s.matricule });
   p.y -= 16;
-  p.champ("Salarié", nomComplet(s), p.M, p.M + 150);
-  p.champ("Poste", s.poste ?? "—", p.M, p.M + 150);
-  p.champ("Période d'emploi", `du ${dateFr(s.hire_date)} au ${s.exit_date ? dateFr(s.exit_date) : "—"}`, p.M, p.M + 150);
-  p.champ("Ancienneté", `${anciennete(s)} an(s)`, p.M, p.M + 150);
+  const MOTIFS: Record<string, string> = {
+    demission: "Démission", licenciement: "Licenciement",
+    fin_cdd: "Fin de contrat à durée déterminée", retraite: "Départ à la retraite",
+  };
+  p.champ("Salarié", nomComplet(s), p.M, p.M + 160);
+  p.champ("Poste / Catégorie", `${s.poste ?? "—"} (${(s as unknown as { category?: string }).category ?? "Employé"})`, p.M, p.M + 160);
+  p.champ("Période d'emploi", `du ${dateFr(s.hire_date)} au ${s.exit_date ? dateFr(s.exit_date) : dateFr(new Date())}`, p.M, p.M + 160);
+  p.champ("Ancienneté", `${anciennete(s)} an(s)`, p.M, p.M + 160);
+  p.champ("Motif du départ", MOTIFS[d.motif] ?? d.motif, p.M, p.M + 160);
   p.y -= 6;
+
   p.tableau(
     [
-      { titre: "Élément", largeur: 5 },
-      { titre: "Détail", largeur: 3 },
-      { titre: "Montant (GNF)", largeur: 2, droite: true },
+      { titre: "Élément", largeur: 4 },
+      { titre: "Feuille de calcul", largeur: 4.5 },
+      { titre: "Montant (GNF)", largeur: 2.2, droite: true },
     ],
-    [
-      ["Congés acquis non pris", `${d.soldeConges.toLocaleString("fr-FR")} jour(s) ouvrable(s)`, "à valoriser"],
-      ["Dernier salaire net perçu", d.dernierePeriode ?? "—", d.dernierNet != null ? gnf(d.dernierNet) : "—"],
-      ["Indemnités légales (licenciement, préavis…)", "selon Code du travail", "à valider RH"],
-    ]
+    d.lignes.map((l) => [l.libelle, l.detail, gnf(l.montant)]),
+    { totaux: ["TOTAL À VERSER", "", gnf(d.total)] }
   );
-  p.y -= 6;
+  p.y -= 10;
+  p.bandeau("SOLDE DE TOUT COMPTE", `${gnf(d.total)} GNF`);
+
   p.paragraphe(
-    "Le détail de la valorisation des congés non pris et des indemnités légales est établi et validé par le " +
-    "service RH conformément au Code du travail de la République de Guinée avant signature du présent reçu.",
-    8.5, 12
+    "Calcul établi conformément au Code du travail de la République de Guinée et à la convention collective " +
+    "applicable : salaire journalier = brut mensuel / 26 jours ouvrables ; indemnité de licenciement de 25 %, " +
+    "30 % puis 35 % du salaire mensuel par année selon la tranche d'ancienneté (1-5, 6-10, 11 ans et plus).",
+    8, 11
   );
   p.y -= 8;
   p.paragraphe(
-    "Le salarié reconnaît avoir reçu, pour solde de tout compte, les sommes détaillées ci-dessus et déclare " +
-    "n'avoir plus rien à réclamer au titre de son contrat de travail.",
+    "Le salarié reconnaît avoir reçu, pour solde de tout compte, la somme détaillée ci-dessus et déclare " +
+    "n'avoir plus rien à réclamer au titre de l'exécution et de la rupture de son contrat de travail.",
     8.5, 12
   );
   signature(p);
-  p.pied("Signature du salarié précédée de la mention « pour solde de tout compte ».");
+  p.pied("Signature du salarié précédée de la mention manuscrite « pour solde de tout compte ».");
   return p.sauver();
 }
 

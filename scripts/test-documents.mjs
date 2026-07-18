@@ -59,7 +59,10 @@ await telecharger("Certificat de travail", `/api/documents/generer?type=certific
 // CAMARA n'a pas de congé approuvé (attente_rh) → on prend FAYE (CA de mars approuvé)
 const [fayePourConge] = await rest(rh.token, "employees?select=id&matricule=eq.EMP-002");
 await telecharger("Certificat de congé (FAYE)", `/api/documents/generer?type=certificat_conge&employee=${fayePourConge.id}`, rh.cookie);
-await telecharger("Solde de tout compte", `/api/documents/generer?type=solde_tout_compte&employee=${emp.id}`, rh.cookie, "scripts/_solde.pdf");
+await telecharger("Solde de tout compte (licenciement, préavis non effectué)", `/api/documents/generer?type=solde_tout_compte&employee=${emp.id}&motif=licenciement&preavis=non_effectue`, rh.cookie, "scripts/_solde.pdf");
+await telecharger("Solde de tout compte (démission)", `/api/documents/generer?type=solde_tout_compte&employee=${emp.id}&motif=demission`, rh.cookie);
+const sMotif = await fetch(`${APP}/api/documents/generer?type=solde_tout_compte&employee=${emp.id}&motif=invalide`, { headers: { Cookie: rh.cookie } });
+ok("Solde avec motif invalide → 400 propre", sMotif.status === 400, `HTTP ${sMotif.status}`);
 await telecharger("Fiche individuelle", `/api/documents/generer?type=fiche_individuelle&employee=${emp.id}`, rh.cookie);
 
 // Cas limite : certificat de congé sans congé approuvé → 404 propre

@@ -24,6 +24,8 @@ export default function Documents() {
   const toast = useToast();
   const [modal, setModal] = useState<string | null>(null);
   const [employeId, setEmployeId] = useState("");
+  const [motif, setMotif] = useState("licenciement");
+  const [preavis, setPreavis] = useState("effectue");
 
   const { data, loading, error, refresh } = useQuery(async (sb) => {
     const [docs, emps, run] = await Promise.all([
@@ -139,10 +141,35 @@ export default function Documents() {
                   ))}
                 </select>
               </div>
+              {modal === "solde_tout_compte" && (
+                <>
+                  <div className="fgrid">
+                    <div className="fld"><label>Motif du départ</label>
+                      <select value={motif} onChange={(e) => setMotif(e.target.value)}>
+                        <option value="licenciement">Licenciement</option>
+                        <option value="demission">Démission</option>
+                        <option value="fin_cdd">Fin de CDD</option>
+                        <option value="retraite">Départ à la retraite</option>
+                      </select>
+                    </div>
+                    <div className="fld"><label>Préavis</label>
+                      <select value={preavis} onChange={(e) => setPreavis(e.target.value)}>
+                        <option value="effectue">Effectué</option>
+                        <option value="non_effectue">Non effectué (à indemniser)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="alert vt"><span className="ic">🧮</span><div>Calcul automatique : prorata du mois, congés non pris (brut/26), indemnité de licenciement (25/30/35 % par tranche d’ancienneté), préavis — feuille de calcul détaillée jointe.</div></div>
+                </>
+              )}
             </div>
             <div className="mf">
               <button className="btn btn-g" onClick={() => setModal(null)}>Annuler</button>
-              <button className="btn btn-p" disabled={!employeId} onClick={() => telecharger(modal, { employee: employeId })}>⇩ Générer le PDF</button>
+              <button className="btn btn-p" disabled={!employeId}
+                onClick={() => telecharger(modal, {
+                  employee: employeId,
+                  ...(modal === "solde_tout_compte" ? { motif, preavis } : {}),
+                })}>⇩ Générer le PDF</button>
             </div>
           </div>
         </div>
