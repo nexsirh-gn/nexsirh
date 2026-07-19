@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { Modals, type ModalId } from "@/components/modals";
 import { AdminModals } from "@/components/admin-modals";
+import { NouvelEmployeModal } from "@/components/nouvel-employe";
 
 /* ===== Toasts (équivalent toast() de la maquette) ===== */
 type Toast = { id: number; msg: string };
@@ -41,6 +42,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         {children}
         <Modals />
         <AdminModals />
+        <NouvelEmployeModal />
         <div id="toast">
           {toasts.map((t) => (
             <div key={t.id} className="tst">

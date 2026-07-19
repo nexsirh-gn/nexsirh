@@ -1,10 +1,9 @@
 "use client";
 
-import { useModal, useToast } from "@/components/providers";
+import { useToast } from "@/components/providers";
 import { useQuery, formatGNF, MOIS } from "@/lib/hooks";
 
 export default function MesBulletins() {
-  const { om } = useModal();
   const toast = useToast();
 
   const { data, loading, error } = useQuery(async (sb) => {
@@ -32,7 +31,7 @@ export default function MesBulletins() {
                 <td className="gnf">{formatGNF(b.gross)}</td>
                 <td className="gnf"><b>{formatGNF(b.net_pay)}</b></td>
                 <td>
-                  <button className="btn btn-o btn-sm" onClick={() => om("mBulletin")}>Aperçu</button>{" "}
+                  <a className="btn btn-o btn-sm" href={`/api/documents/bulletin/${b.id}?inline=1`} target="_blank" rel="noreferrer">Aperçu</a>{" "}
                   <a className="btn btn-g btn-sm" href={`/api/documents/bulletin/${b.id}`}
                     onClick={() => toast("Téléchargement du bulletin PDF…")}>⇩ PDF</a>
                 </td>

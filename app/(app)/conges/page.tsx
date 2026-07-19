@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useModal, useToast } from "@/components/providers";
+import { useToast } from "@/components/providers";
 import { useQuery, initiales } from "@/lib/hooks";
-import { deciderConge } from "@/app/actions";
+import { deciderConge, demanderConge } from "@/app/actions";
 
 type CTab = "attente" | "approuve" | "refuse";
 type Demande = {
@@ -17,20 +17,49 @@ export default function Conges() {
   const [enTraitement, setEnTraitement] = useState<Demande | null>(null);
   const [motif, setMotif] = useState("");
   const [pending, setPending] = useState(false);
-  const { om } = useModal();
+  const [modalDemande, setModalDemande] = useState(false);
+  const [dEmploye, setDEmploye] = useState("");
+  const [dType, setDType] = useState("CA");
+  const [dDu, setDDu] = useState("");
+  const [dAu, setDAu] = useState("");
+  const [dComment, setDComment] = useState("");
   const toast = useToast();
 
   const { data, loading, error, refresh } = useQuery(async (sb) => {
-    const res = await sb.from("leave_requests")
-      .select("id, leave_type_code, start_date, end_date, working_days, status, refusal_reason, comment, employees(first_name, last_name, departments(name))")
-      .order("created_at", { ascending: false });
+    const [res, emps] = await Promise.all([
+      sb.from("leave_requests")
+        .select("id, leave_type_code, start_date, end_date, working_days, status, refusal_reason, comment, employees(first_name, last_name, departments(name))")
+        .order("created_at", { ascending: false }),
+      sb.from("employees").select("id, matricule, first_name, last_name").in("status", ["actif", "essai"]).order("matricule"),
+    ]);
     if (res.error) throw res.error;
-    return res.data as unknown as Demande[];
+    return { demandes: res.data as unknown as Demande[], emps: emps.data ?? [] };
   });
 
   if (loading) return <div className="note">Chargement des congés…</div>;
   if (error) return <div className="alert rg"><span className="ic">⚠</span><div>Erreur : {error}</div></div>;
-  const demandes = data!;
+  const { demandes, emps } = data!;
+
+  function joursOuvrables(a: string, b: string): number {
+    let n = 0;
+    for (let dt = new Date(a); dt <= new Date(b); dt.setDate(dt.getDate() + 1)) {
+      if (dt.getDay() !== 0 && dt.getDay() !== 6) n++;
+    }
+    return n;
+  }
+
+  async function envoyerDemande() {
+    if (!dEmploye || !dDu || !dAu) { toast("Salarié et dates obligatoires."); return; }
+    setPending(true);
+    const res = await demanderConge({
+      employeeId: dEmploye, typeCode: dType, du: dDu, au: dAu,
+      jours: joursOuvrables(dDu, dAu), commentaire: dComment,
+    });
+    setPending(false);
+    setModalDemande(false);
+    if (res.ok) { toast("Demande créée — circuit Manager → RH ✓"); setDEmploye(""); setDDu(""); setDAu(""); setDComment(""); refresh(); }
+    else toast(`Erreur : ${res.error}`);
+  }
 
   const attente = demandes.filter((d) => d.status.startsWith("attente"));
   const approuvees = demandes.filter((d) => d.status === "approuve");
@@ -60,7 +89,7 @@ export default function Conges() {
         <button className={`chip ${tab === "approuve" ? "on" : ""}`} onClick={() => setTab("approuve")}>Approuvées · {approuvees.length}</button>
         <button className={`chip ${tab === "refuse" ? "on" : ""}`} onClick={() => setTab("refuse")}>Refusées · {refusees.length}</button>
         <span className="sp" />
-        <button className="btn btn-p" onClick={() => om("mDemandeConge")}>+ Nouvelle demande</button>
+        <button className="btn btn-p" onClick={() => setModalDemande(true)}>+ Nouvelle demande</button>
       </div>
 
       <div className="panel">
@@ -96,6 +125,47 @@ export default function Conges() {
           </tbody>
         </table>
       </div>
+
+      {/* Modale nouvelle demande — écriture réelle */}
+      {modalDemande && (
+        <div className="ovl" onClick={(e) => e.target === e.currentTarget && setModalDemande(false)}>
+          <div className="mdl">
+            <div className="mh">
+              <div><h3>Nouvelle demande de congé</h3><p>Les jours ouvrables sont calculés automatiquement (week-ends exclus).</p></div>
+              <button className="x" onClick={() => setModalDemande(false)}>✕</button>
+            </div>
+            <div className="mb">
+              <div className="fgrid">
+                <div className="fld w"><label>Salarié</label>
+                  <select value={dEmploye} onChange={(e) => setDEmploye(e.target.value)}>
+                    <option value="">— Sélectionner —</option>
+                    {emps.map((e) => <option key={e.id} value={e.id}>{e.last_name} {e.first_name} — {e.matricule}</option>)}
+                  </select>
+                </div>
+                <div className="fld"><label>Type d’absence</label>
+                  <select value={dType} onChange={(e) => setDType(e.target.value)}>
+                    <option value="CA">Congé annuel</option><option value="CM">Congé maladie</option>
+                    <option value="CMAT">Congé maternité</option><option value="PERM">Permission exceptionnelle</option>
+                    <option value="ANJ">Absence non justifiée</option>
+                  </select>
+                </div>
+                <div className="fld"><label>Du</label><input type="date" value={dDu} onChange={(e) => setDDu(e.target.value)} /></div>
+                <div className="fld"><label>Au (inclus)</label><input type="date" value={dAu} onChange={(e) => setDAu(e.target.value)} /></div>
+                <div className="fld w"><label>Commentaire</label><textarea rows={2} value={dComment} onChange={(e) => setDComment(e.target.value)} placeholder="Motif ou précision…" /></div>
+              </div>
+              {dDu && dAu && (
+                <div className="alert vt"><span className="ic">🧮</span><div><b>{joursOuvrables(dDu, dAu)} jours ouvrables</b> décomptés. Circuit : Manager → RH.</div></div>
+              )}
+            </div>
+            <div className="mf">
+              <button className="btn btn-g" onClick={() => setModalDemande(false)}>Annuler</button>
+              <button className="btn btn-p" disabled={pending || !dEmploye || !dDu || !dAu} onClick={envoyerDemande}>
+                {pending ? "Envoi…" : "Envoyer la demande"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modale de traitement — écriture réelle */}
       {enTraitement && (

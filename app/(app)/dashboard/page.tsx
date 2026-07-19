@@ -79,7 +79,7 @@ export default function Dashboard() {
                     <td>{new Date(dem.start_date).toLocaleDateString("fr-FR")} – {new Date(dem.end_date).toLocaleDateString("fr-FR")}</td>
                     <td className="gnf mono">{dem.working_days}</td>
                     <td><span className={`bg ${dem.status === "attente_rh" ? "bg-o" : "bg-b"}`}>{dem.status === "attente_rh" ? "Attente RH" : "Attente manager"}</span></td>
-                    <td><button className="btn btn-o btn-sm" onClick={() => om("mValiderConge")}>Traiter</button></td>
+                    <td><Link className="btn btn-o btn-sm" href="/conges">Traiter →</Link></td>
                   </tr>
                 );
               })}

@@ -1,16 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useModal } from "@/components/providers";
 import { useQuery, formatGNF, MOIS } from "@/lib/hooks";
 
 export default function PortailAccueil() {
-  const { om } = useModal();
-
   const { data, loading, error } = useQuery(async (sb) => {
     // La RLS ne renvoie QUE les lignes de l'employé connecté
     const [dernierBulletin, solde, demandes] = await Promise.all([
-      sb.from("payslips").select("net_pay, payroll_runs!inner(period_year, period_month, status)")
+      sb.from("payslips").select("id, net_pay, payroll_runs!inner(period_year, period_month, status)")
         .eq("payroll_runs.status", "cloture")
         .order("created_at", { ascending: false }).limit(1).maybeSingle(),
       sb.from("leave_balances").select("entitled_days, seniority_bonus_days, carryover_days, taken_days").eq("year", 2026).maybeSingle(),
@@ -34,7 +31,7 @@ export default function PortailAccueil() {
         <div className="kpi gold">
           <div className="l">Dernier net perçu{run ? ` · ${MOIS[run.period_month]}` : ""}</div>
           <div className="v">{formatGNF(d.bulletin?.net_pay)} <span style={{ fontSize: 12, color: "var(--gris)" }}>GNF</span></div>
-          <div className="d"><span className="link" onClick={() => om("mBulletin")}>Voir le bulletin →</span></div>
+          <div className="d">{d.bulletin && <a className="link" href={`/api/documents/bulletin/${d.bulletin.id}?inline=1`} target="_blank" rel="noreferrer">Voir le bulletin →</a>}</div>
         </div>
         <div className="kpi">
           <div className="l">Solde de congés</div>

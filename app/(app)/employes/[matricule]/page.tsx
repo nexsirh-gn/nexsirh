@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { useModal, useToast } from "@/components/providers";
+import { useToast } from "@/components/providers";
 import { useQuery, formatGNF, initiales } from "@/lib/hooks";
-import { creerMouvement } from "@/app/actions";
+import { creerMouvement, modifierEmploye } from "@/app/actions";
 
 type Tab = "ft1" | "ft2" | "ft3" | "ft4" | "ft5" | "ft6";
 const TABS: [Tab, string][] = [
@@ -18,10 +18,11 @@ export default function FicheEmploye() {
   const [tab, setTab] = useState<Tab>("ft1");
   const [modalMvt, setModalMvt] = useState(false);
   const [modalDoc, setModalDoc] = useState(false);
+  const [modalEdit, setModalEdit] = useState(false);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [nouveauSalaire, setNouveauSalaire] = useState("");
   const [motif, setMotif] = useState("");
   const [pending, setPending] = useState(false);
-  const { om } = useModal();
   const toast = useToast();
 
   const { data, loading, error, refresh } = useQuery(async (sb) => {
@@ -102,7 +103,7 @@ export default function FicheEmploye() {
         </div>
         <button className="btn btn-o" onClick={() => setModalMvt(true)}>⇄ Nouveau mouvement</button>
         <button className="btn btn-o" onClick={() => setModalDoc(true)}>📄 Générer un document</button>
-        <button className="btn btn-p" onClick={() => om("mModifEmploye")}>✎ Modifier</button>
+        <button className="btn btn-p" onClick={() => { setEditForm({}); setModalEdit(true); }}>✎ Modifier</button>
       </div>
 
       <div className="tabs">
@@ -274,6 +275,65 @@ export default function FicheEmploye() {
                 </div>
               ))}
               <div className="tl"><small>{new Date(emp.hire_date).toLocaleDateString("fr-FR")} · système</small><b>Embauche</b> — {emp.contract_type}.</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale modification de fiche — écriture réelle (hors salaire) */}
+      {modalEdit && (
+        <div className="ovl" onClick={(e) => e.target === e.currentTarget && setModalEdit(false)}>
+          <div className="mdl lg">
+            <div className="mh">
+              <div>
+                <h3>✎ Modifier la fiche — {nom}</h3>
+                <p>Matricule <b className="mono">{emp.matricule}</b> (non modifiable) · toute modification est tracée dans l’audit.</p>
+              </div>
+              <button className="x" onClick={() => setModalEdit(false)}>✕</button>
+            </div>
+            <div className="mb">
+              <div className="fgrid">
+                {([
+                  ["civility", "Civilité", emp.civility],
+                  ["last_name", "Nom", emp.last_name],
+                  ["first_name", "Prénom", emp.first_name],
+                  ["phone", "Téléphone", emp.phone],
+                  ["email", "Email", emp.email],
+                  ["cnss_number", "N° CNSS", emp.cnss_number],
+                  ["address", "Adresse", emp.address],
+                  ["bank_name", "Banque", emp.bank_name],
+                  ["bank_account", "N° de compte", emp.bank_account],
+                  ["emergency_contact_name", "Contact d’urgence", emp.emergency_contact_name],
+                  ["emergency_contact_phone", "Téléphone d’urgence", emp.emergency_contact_phone],
+                ] as [string, string, string | null][]).map(([champ, libelle, valeur]) => (
+                  <div key={champ} className={`fld ${champ === "address" ? "w" : ""}`}>
+                    <label>{libelle}</label>
+                    <input
+                      value={editForm[champ] ?? valeur ?? ""}
+                      onChange={(e) => setEditForm({ ...editForm, [champ]: e.target.value })}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="alert or" style={{ marginTop: 8 }}>
+                <span className="ic">🔒</span>
+                <div>Le <b>salaire de base et les primes</b> ne se modifient pas ici : utilisez « Nouveau mouvement » pour garder la traçabilité.</div>
+              </div>
+            </div>
+            <div className="mf">
+              <button className="btn btn-g" onClick={() => setModalEdit(false)}>Annuler</button>
+              <button className="btn btn-o" onClick={() => { setModalEdit(false); setModalMvt(true); }}>⇄ Modifier le salaire (mouvement)</button>
+              <button className="btn btn-p" disabled={pending || Object.keys(editForm).length === 0}
+                onClick={async () => {
+                  setPending(true);
+                  const res = await modifierEmploye(emp.id, editForm);
+                  setPending(false);
+                  setModalEdit(false);
+                  if (res.ok) { toast("Fiche mise à jour ✓ — modification tracée dans l’audit"); refresh(); }
+                  else toast(`Erreur : ${res.error}`);
+                }}>
+                {pending ? "Enregistrement…" : "Enregistrer"}
+              </button>
             </div>
           </div>
         </div>

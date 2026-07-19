@@ -145,6 +145,104 @@ export async function supprimerPaie(runId: string): Promise<Result> {
   return { ok: true };
 }
 
+/** Création d'un employé (matricule généré côté serveur, rémunération liée) */
+export async function creerEmploye(input: {
+  civility: string; last_name: string; first_name: string;
+  birth_date: string; birth_place?: string; nationality?: string;
+  marital_status?: string; children_count?: number;
+  address?: string; phone?: string; email?: string;
+  emergency_contact_name?: string; emergency_contact_phone?: string;
+  department_id?: string; position_id?: string; manager_id?: string;
+  contract_type: string; hire_date: string; contract_end_date?: string;
+  trial_end_date?: string; category?: string; cnss_number?: string;
+  bank_name?: string; bank_account?: string; payment_mode?: string;
+  base_salary: number; seniority_bonus?: number; meal_allowance?: number;
+  housing_allowance?: number; transport_allowance?: number;
+  cost_of_living_allowance?: number;
+}): Promise<Result & { matricule?: string }> {
+  try {
+    const { sb, userId, companyId } = await contexteRH();
+    if (!input.last_name?.trim() || !input.first_name?.trim() || !input.birth_date || !input.hire_date) {
+      return err("Nom, prénom, date de naissance et date d'embauche obligatoires.");
+    }
+    if (!Number.isFinite(input.base_salary) || input.base_salary <= 0) {
+      return err("Salaire de base obligatoire (entier GNF positif).");
+    }
+    // Matricule EMP-XXX généré côté serveur, unique par entreprise, non modifiable
+    const { data: matricule, error: eMat } = await sb.rpc("next_matricule", { p_company: companyId });
+    if (eMat) return err(eMat);
+
+    const { data: emp, error: eEmp } = await sb.from("employees").insert({
+      company_id: companyId, matricule,
+      civility: input.civility || "M.",
+      last_name: input.last_name.trim().toUpperCase(),
+      first_name: input.first_name.trim(),
+      birth_date: input.birth_date, birth_place: input.birth_place || null,
+      nationality: input.nationality || "Guinéenne",
+      marital_status: input.marital_status || null,
+      children_count: input.children_count ?? 0,
+      address: input.address || null, phone: input.phone || null, email: input.email || null,
+      emergency_contact_name: input.emergency_contact_name || null,
+      emergency_contact_phone: input.emergency_contact_phone || null,
+      department_id: input.department_id || null, position_id: input.position_id || null,
+      manager_id: input.manager_id || null,
+      contract_type: input.contract_type, hire_date: input.hire_date,
+      contract_end_date: input.contract_end_date || null,
+      trial_end_date: input.trial_end_date || null,
+      category: input.category || "Employé", cnss_number: input.cnss_number || null,
+      bank_name: input.bank_name || null, bank_account: input.bank_account || null,
+      payment_mode: input.payment_mode || "Virement",
+      status: input.trial_end_date ? "essai" : "actif",
+    }).select("id").single();
+    if (eEmp) {
+      // Contraintes SQL lisibles (âge ≥ 16, CDD ≤ 24 mois, date fin CDD)
+      if (eEmp.message.includes("age_minimum")) return err("Âge minimum : 16 ans à l'embauche (Code du travail).");
+      if (eEmp.message.includes("cdd_24_mois")) return err("Un CDD ne peut pas dépasser 24 mois.");
+      if (eEmp.message.includes("cdd_date_fin")) return err("Date de fin obligatoire pour un CDD.");
+      return err(eEmp);
+    }
+    const { error: eComp } = await sb.from("employee_compensation").insert({
+      employee_id: emp.id, company_id: companyId,
+      base_salary: Math.round(input.base_salary),
+      seniority_bonus: Math.round(input.seniority_bonus ?? 0),
+      meal_allowance: Math.round(input.meal_allowance ?? 0),
+      housing_allowance: Math.round(input.housing_allowance ?? 0),
+      transport_allowance: Math.round(input.transport_allowance ?? 0),
+      cost_of_living_allowance: Math.round(input.cost_of_living_allowance ?? 0),
+    });
+    if (eComp) return err(eComp);
+    await sb.from("employee_movements").insert({
+      company_id: companyId, employee_id: emp.id, movement_type: "embauche",
+      reason: `Embauche ${input.contract_type}`, effective_date: input.hire_date, created_by: userId,
+    });
+    revalidatePath("/employes");
+    return { ok: true, matricule: matricule as string };
+  } catch (e) {
+    return err(e as Error);
+  }
+}
+
+/** Modification de la fiche (hors salaire — le salaire passe par un mouvement) */
+export async function modifierEmploye(
+  employeeId: string,
+  champs: Record<string, string | number | null>
+): Promise<Result> {
+  try {
+    const { sb } = await contexteRH();
+    const AUTORISES = ["civility", "marital_status", "last_name", "first_name", "phone", "email",
+      "address", "department_id", "position_id", "manager_id", "payment_mode", "bank_name",
+      "bank_account", "emergency_contact_name", "emergency_contact_phone", "cnss_number"];
+    const patch = Object.fromEntries(Object.entries(champs).filter(([k]) => AUTORISES.includes(k)));
+    if (Object.keys(patch).length === 0) return err("Aucun champ modifiable fourni.");
+    const { error } = await sb.from("employees").update(patch).eq("id", employeeId);
+    if (error) return err(error);
+    revalidatePath("/employes");
+    return { ok: true };
+  } catch (e) {
+    return err(e as Error);
+  }
+}
+
 /** Mouvement de carrière (jamais d'UPDATE direct du salaire — trigger applique) */
 export async function creerMouvement(input: {
   employeeId: string;

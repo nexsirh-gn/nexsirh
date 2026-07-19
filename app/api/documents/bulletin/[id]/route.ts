@@ -10,8 +10,9 @@ const MOIS = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
  * La session utilisateur fait autorité : la RLS ne renvoie le bulletin que
  * si le rôle y donne droit (employé → les siens uniquement).
  */
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
+  const inline = new URL(req.url).searchParams.get("inline") === "1";
   const sb = await createClient();
 
   const { data: { user } } = await sb.auth.getUser();
@@ -62,7 +63,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   return new NextResponse(Buffer.from(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${nomFichier}"`,
+      "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${nomFichier}"`,
     },
   });
 }
