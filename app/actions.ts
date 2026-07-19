@@ -78,6 +78,73 @@ export async function cloturerPaie(runId: string): Promise<Result> {
   return { ok: true };
 }
 
+/**
+ * Paie — les trois opérations du cycle délèguent à lib/paie/generation
+ * (orchestration partagée avec les tests E2E, toujours sous RLS).
+ */
+async function contexteRH() {
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) throw new Error("Non connecté");
+  const { data: profil } = await sb.from("profiles").select("company_id, role").eq("id", user.id).single();
+  if (!["admin", "rh"].includes(profil?.role ?? "")) throw new Error("Réservé aux rôles RH/Admin.");
+  return { sb, userId: user.id, companyId: profil!.company_id as string };
+}
+
+/** Générer le cycle d'un mois (bulletins calculés par lib/paie, barème via getBaremeAt) */
+export async function genererPaie(year: number, month: number): Promise<Result & { nb?: number }> {
+  try {
+    const { genererPaieDB } = await import("@/lib/paie/generation");
+    const { sb, userId, companyId } = await contexteRH();
+    const nb = await genererPaieDB(sb, companyId, userId, year, month);
+    revalidatePath("/paie");
+    return { ok: true, nb };
+  } catch (e) {
+    return err(e as Error);
+  }
+}
+
+/** Recalculer une période en brouillon — les saisies manuelles survivent (§6.6) */
+export async function recalculerPaie(runId: string): Promise<Result & { nb?: number }> {
+  try {
+    const { recalculerPaieDB } = await import("@/lib/paie/generation");
+    const { sb, companyId } = await contexteRH();
+    const nb = await recalculerPaieDB(sb, companyId, runId);
+    revalidatePath("/paie");
+    return { ok: true, nb };
+  } catch (e) {
+    return err(e as Error);
+  }
+}
+
+/** Ajustement manuel (retenue/reprise ou rappel) — bulletin recalculé, net négatif bloqué (§6.7) */
+export async function ajouterAjustement(
+  payslipId: string,
+  type: "retenue" | "rappel",
+  libelle: string,
+  montant: number
+): Promise<Result> {
+  try {
+    const { ajouterAjustementDB } = await import("@/lib/paie/generation");
+    const { sb, companyId } = await contexteRH();
+    await ajouterAjustementDB(sb, companyId, payslipId, type, libelle, montant);
+    revalidatePath("/paie");
+    return { ok: true };
+  } catch (e) {
+    return err(e as Error);
+  }
+}
+
+
+/** Paie : supprimer une période en brouillon (autorisé par la maquette et §6.6) */
+export async function supprimerPaie(runId: string): Promise<Result> {
+  const sb = await createClient();
+  const { error } = await sb.from("payroll_runs").delete().eq("id", runId).eq("status", "brouillon");
+  if (error) return err(error);
+  revalidatePath("/paie");
+  return { ok: true };
+}
+
 /** Mouvement de carrière (jamais d'UPDATE direct du salaire — trigger applique) */
 export async function creerMouvement(input: {
   employeeId: string;

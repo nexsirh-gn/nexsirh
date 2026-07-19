@@ -55,6 +55,11 @@ async function main() {
   const { data: comps } = await sb.from("employee_compensation").select("*");
   const { data: loans } = await sb.from("loans").select("*").eq("status", "actif");
 
+  // HS validées/transmises par salarié et période (injectées dans les bulletins)
+  const { data: tsAll } = await sb.from("timesheets")
+    .select("employee_id, period_year, period_month, overtime_amount, status")
+    .in("status", ["valide", "transmis_paie"]);
+
   console.log(`— 1. Recalcul des ${slips!.length} bulletins stockés —`);
   for (const s of slips!) {
     const run = s.payroll_runs as { period_year: number; period_month: number };
@@ -63,15 +68,25 @@ async function main() {
     if (!comp) { console.log(`  ⚠ ${etiquette} : rémunération introuvable`); ecarts++; continue; }
 
     const pret = loans!.find((l) => l.employee_id === s.employee_id);
+    const hs = (tsAll ?? []).find((t) =>
+      t.employee_id === s.employee_id && t.period_year === run.period_year && t.period_month === run.period_month
+    )?.overtime_amount ?? 0;
+    // Le bulletin stocké contient-il la ligne HS ? (les bulletins antérieurs à la
+    // validation des feuilles n'en ont pas — on recalcule à périmètre identique)
+    const gains = (s.earnings ?? []) as { libelle: string; montant: number }[];
+    const hsDansBulletin = gains.some((g) => g.libelle.includes("supplémentaires"));
+    const rappels = ((s.manual_bonuses ?? []) as { montant: number }[]).reduce((t, x) => t + x.montant, 0);
+    const retenuesManuelles = ((s.deductions ?? []) as { montant: number }[]).reduce((t, x) => t + x.montant, 0);
     const b = calculerBulletin(
       {
         baseSalary: comp.base_salary, seniorityBonus: comp.seniority_bonus,
         mealAllowance: comp.meal_allowance, housingAllowance: comp.housing_allowance,
         transportAllowance: comp.transport_allowance, costOfLivingAllowance: comp.cost_of_living_allowance,
-        otherBonuses: comp.other_bonuses,
+        overtime: hsDansBulletin ? hs : 0,
+        otherBonuses: comp.other_bonuses + rappels,
       },
       bareme,
-      { retenues: pret ? pret.monthly_amount : 0 }
+      { retenues: (pret ? pret.monthly_amount : 0) + retenuesManuelles }
     );
     // Tolérance ±1 GNF uniquement sur les lignes issues d'un demi-franc (§6.8)
     verifier(`${etiquette} brut`, b.brut, s.gross);

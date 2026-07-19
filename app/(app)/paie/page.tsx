@@ -1,15 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { useModal, useToast } from "@/components/providers";
+import { useToast } from "@/components/providers";
 import { useQuery, formatGNF, initiales, MOIS } from "@/lib/hooks";
-import { cloturerPaie } from "@/app/actions";
+import { cloturerPaie, genererPaie, recalculerPaie, ajouterAjustement, supprimerPaie } from "@/app/actions";
+
+type Slip = {
+  id: string; employee_name: string; matricule: string; position_title: string | null;
+  gross: number; cnss_employee: number; cnss_employer: number; rts: number; vf: number; cfpa: number;
+  loans_deduction: number; other_deductions: number; net_pay: number;
+};
 
 export default function Paie() {
-  const { om } = useModal();
   const toast = useToast();
   const [runIdx, setRunIdx] = useState(0);
   const [modalCloture, setModalCloture] = useState(false);
+  const [modalRecalcul, setModalRecalcul] = useState(false);
+  const [ajustement, setAjustement] = useState<Slip | null>(null);
+  const [typeAj, setTypeAj] = useState<"retenue" | "rappel">("retenue");
+  const [libelleAj, setLibelleAj] = useState("");
+  const [montantAj, setMontantAj] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -23,7 +33,7 @@ export default function Paie() {
         sb.from("payslips")
           .select("id, employee_name, matricule, position_title, gross, cnss_employee, cnss_employer, rts, vf, cfpa, loans_deduction, other_deductions, net_pay")
           .eq("payroll_run_id", r.id).order("matricule")
-          .then((res) => res.data ?? [])
+          .then((res) => (res.data ?? []) as Slip[])
       )
     );
     return { runs: runs.data ?? [], bulletins };
@@ -32,7 +42,33 @@ export default function Paie() {
   if (loading) return <div className="note">Chargement de la paie…</div>;
   if (error) return <div className="alert rg"><span className="ic">⚠</span><div>Erreur : {error}</div></div>;
   const { runs, bulletins } = data!;
-  if (runs.length === 0) return <div className="alert or"><span className="ic">ⓘ</span><div>Aucun cycle de paie. Générez la première paie du mois.</div></div>;
+
+  // Prochaine période à générer : mois suivant la dernière (ou mois courant si aucune)
+  const derniere = runs[0];
+  const prochaine = derniere
+    ? derniere.period_month === 12
+      ? { y: derniere.period_year + 1, m: 1 }
+      : { y: derniere.period_year, m: derniere.period_month + 1 }
+    : { y: new Date().getFullYear(), m: new Date().getMonth() + 1 };
+
+  async function lancerGeneration() {
+    setPending(true);
+    const res = await genererPaie(prochaine.y, prochaine.m);
+    setPending(false);
+    if (res.ok) { toast(`Paie de ${MOIS[prochaine.m].toLowerCase()} ${prochaine.y} générée — ${res.nb} bulletins en brouillon ✓`); setRunIdx(0); refresh(); }
+    else toast(`Erreur : ${res.error}`);
+  }
+
+  if (runs.length === 0) {
+    return (
+      <div>
+        <div className="alert or"><span className="ic">ⓘ</span><div>Aucun cycle de paie. Générez la première paie du mois.</div></div>
+        <button className="btn btn-p" disabled={pending} onClick={lancerGeneration}>
+          {pending ? "Génération…" : `＋ Générer la paie de ${MOIS[prochaine.m].toLowerCase()} ${prochaine.y}`}
+        </button>
+      </div>
+    );
+  }
 
   const run = runs[runIdx];
   const slips = bulletins[runIdx];
@@ -55,6 +91,36 @@ export default function Paie() {
     else toast(`Erreur : ${res.error}`);
   }
 
+  async function lancerRecalcul() {
+    setPending(true);
+    const res = await recalculerPaie(run.id);
+    setPending(false);
+    setModalRecalcul(false);
+    if (res.ok) { toast(`Recalcul terminé — ${res.nb} bulletins mis à jour, saisies manuelles conservées ✓`); refresh(); }
+    else toast(`Erreur : ${res.error}`);
+  }
+
+  async function validerAjustement() {
+    if (!ajustement) return;
+    const montant = Number(montantAj.replace(/\D/g, ""));
+    setPending(true);
+    const res = await ajouterAjustement(ajustement.id, typeAj, libelleAj, montant);
+    setPending(false);
+    if (res.ok) {
+      toast(`${typeAj === "rappel" ? "Rappel" : "Retenue"} de ${formatGNF(montant)} GNF appliqué(e) — bulletin recalculé ✓`);
+      setAjustement(null); setLibelleAj(""); setMontantAj("");
+      refresh();
+    } else toast(`Erreur : ${res.error}`);
+  }
+
+  async function supprimerBrouillon() {
+    setPending(true);
+    const res = await supprimerPaie(run.id);
+    setPending(false);
+    if (res.ok) { toast("Période en brouillon supprimée."); setRunIdx(0); refresh(); }
+    else toast(`Erreur : ${res.error}`);
+  }
+
   return (
     <div>
       <div className="tools">
@@ -68,6 +134,12 @@ export default function Paie() {
         <span className={`bg ${run.status === "brouillon" ? "bg-o" : run.status === "cloture" ? "bg-g" : "bg-v"}`}>{libStatut}</span>
         <span className="note">{run.generated_at ? `Générée le ${new Date(run.generated_at).toLocaleDateString("fr-FR")}` : ""} · {slips.length} bulletins</span>
         <span className="sp" />
+        <button className="btn btn-o" disabled={pending} onClick={lancerGeneration}>
+          ＋ Générer {MOIS[prochaine.m].toLowerCase()} {prochaine.y}
+        </button>
+        {run.status !== "cloture" && (
+          <button className="btn btn-o" onClick={() => setModalRecalcul(true)}>↻ Recalculer tout</button>
+        )}
         <a className="btn btn-o" href={`/api/documents/generer?type=journal_paie&run=${run.id}`}
           onClick={() => toast("Génération du journal de paie PDF…")}>📒 Journal PDF ⇩</a>
         <a className="btn btn-o" href={`/api/documents/generer?type=journal_paie&run=${run.id}&format=xlsx`}
@@ -100,8 +172,10 @@ export default function Paie() {
                 </td>
                 <td className="gnf"><b>{formatGNF(b.net_pay)}</b></td>
                 <td><span className={`bg ${run.status === "brouillon" ? "bg-o" : "bg-v"}`}>{libStatut}</span></td>
-                <td>
-                  <button className="btn btn-o btn-sm" onClick={() => om("mBulletin")}>Bulletin</button>{" "}
+                <td style={{ whiteSpace: "nowrap" }}>
+                  {run.status !== "cloture" && (
+                    <><button className="btn btn-o btn-sm" onClick={() => setAjustement(b)}>± Ajustement</button>{" "}</>
+                  )}
                   <a className="btn btn-g btn-sm" href={`/api/documents/bulletin/${b.id}`}
                     onClick={() => toast("Téléchargement du bulletin PDF…")}>⇩ PDF</a>
                 </td>
@@ -109,7 +183,14 @@ export default function Paie() {
             ))}
           </tbody>
         </table>
-        <div className="pgn"><span>{slips.length} bulletins — total net <b className="mono">{formatGNF(totNet)} GNF</b></span></div>
+        <div className="pgn">
+          <span>{slips.length} bulletins — total net <b className="mono">{formatGNF(totNet)} GNF</b></span>
+          {run.status === "brouillon" && (
+            <button className="btn btn-g btn-sm" style={{ width: "auto", padding: "4px 10px" }} disabled={pending} onClick={supprimerBrouillon}>
+              🗑 Supprimer ce brouillon
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid2" style={{ marginTop: 18 }}>
@@ -128,14 +209,66 @@ export default function Paie() {
           <div className="bd">
             <div className="timeline">
               <div className="tl"><small>{run.generated_at ? new Date(run.generated_at).toLocaleDateString("fr-FR") : "—"}</small><b>Génération</b> — {slips.length} bulletins calculés en brouillon.</div>
-              <div className={`tl ${run.status === "brouillon" ? "gold" : ""}`}><small>{run.status === "brouillon" ? "en attente" : "✓"}</small><b>Validation</b> — contrôle des bulletins, recalcul possible.</div>
-              <div className="tl" style={run.status !== "cloture" ? { opacity: 0.45 } : undefined}><small>{run.status === "cloture" ? "✓" : "—"}</small><b>Clôture</b> — montants figés, verrouillage rétroactif (trigger SQL).</div>
+              <div className={`tl ${run.status === "brouillon" ? "gold" : ""}`}><small>{run.status === "brouillon" ? "en cours" : "✓"}</small><b>Validation</b> — recalcul et ajustements possibles, saisies manuelles conservées.</div>
+              <div className="tl" style={run.status !== "cloture" ? { opacity: 0.45 } : undefined}><small>{run.status === "cloture" ? "✓" : "—"}</small><b>Clôture</b> — montants figés (trigger SQL). Correction = rappel/reprise sur le mois suivant.</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modale de clôture — action réelle */}
+      {/* ===== Modale recalcul ===== */}
+      {modalRecalcul && (
+        <div className="ovl" onClick={(e) => e.target === e.currentTarget && setModalRecalcul(false)}>
+          <div className="mdl sm">
+            <div className="mh">
+              <div className="ic-warn">↻</div>
+              <div><h3>Recalculer les {slips.length} bulletins ?</h3><p>Période en brouillon — recalcul autorisé.</p></div>
+              <button className="x" onClick={() => setModalRecalcul(false)}>✕</button>
+            </div>
+            <div className="mb">
+              <p style={{ fontSize: 13.5 }}>
+                Les bulletins seront régénérés à partir des fiches salariés, des feuilles de temps validées et du barème en vigueur.
+                Les saisies manuelles (rappels, retenues) sont <b>conservées</b>.
+              </p>
+            </div>
+            <div className="mf">
+              <button className="btn btn-g" onClick={() => setModalRecalcul(false)}>Annuler</button>
+              <button className="btn btn-p" disabled={pending} onClick={lancerRecalcul}>{pending ? "Recalcul…" : "↻ Lancer le recalcul"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Modale ajustement manuel (rappel / retenue) ===== */}
+      {ajustement && (
+        <div className="ovl" onClick={(e) => e.target === e.currentTarget && setAjustement(null)}>
+          <div className="mdl sm">
+            <div className="mh">
+              <div><h3>Ajustement manuel</h3><p>{ajustement.employee_name} · {MOIS[run.period_month]} {run.period_year} — la saisie survivra au recalcul.</p></div>
+              <button className="x" onClick={() => setAjustement(null)}>✕</button>
+            </div>
+            <div className="mb">
+              <div className="fld"><label>Type</label>
+                <select value={typeAj} onChange={(e) => setTypeAj(e.target.value as "retenue" | "rappel")}>
+                  <option value="retenue">Retenue / reprise (diminue le net)</option>
+                  <option value="rappel">Rappel (gain imposable, réinjecté dans la chaîne)</option>
+                </select>
+              </div>
+              <div className="fld"><label>Libellé</label><input value={libelleAj} onChange={(e) => setLibelleAj(e.target.value)} placeholder="Ex. : avance sur salaire, rappel juin…" /></div>
+              <div className="fld"><label>Montant (GNF)</label><input className="mono" value={montantAj} onChange={(e) => setMontantAj(e.target.value)} placeholder="100 000" /></div>
+              <div className="alert or"><span className="ic">⚠</span><div>Une retenue ne peut pas rendre le net négatif : la génération est bloquée dans ce cas (§6.7), jamais de silencieux.</div></div>
+            </div>
+            <div className="mf">
+              <button className="btn btn-g" onClick={() => setAjustement(null)}>Annuler</button>
+              <button className="btn btn-p" disabled={pending || !libelleAj.trim() || !montantAj} onClick={validerAjustement}>
+                {pending ? "Application…" : "Appliquer et recalculer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Modale de clôture ===== */}
       {modalCloture && (
         <div className="ovl" onClick={(e) => e.target === e.currentTarget && setModalCloture(false)}>
           <div className="mdl sm">
