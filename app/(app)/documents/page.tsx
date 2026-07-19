@@ -26,22 +26,30 @@ export default function Documents() {
   const [employeId, setEmployeId] = useState("");
   const [motif, setMotif] = useState("licenciement");
   const [preavis, setPreavis] = useState("effectue");
+  const [runId, setRunId] = useState("");
+  const [page, setPage] = useState(1);
+  const PAR_PAGE = 10;
 
   const { data, loading, error, refresh } = useQuery(async (sb) => {
-    const [docs, emps, run] = await Promise.all([
+    const [docs, emps, runs] = await Promise.all([
+      // Historique limité à 100 (les plus anciens sont purgés automatiquement en base)
       sb.from("documents").select("id, doc_type, title, period, created_at, employee_id, employees(first_name, last_name)")
-        .order("created_at", { ascending: false }).limit(30),
+        .order("created_at", { ascending: false }).limit(100),
       sb.from("employees").select("id, matricule, first_name, last_name").order("matricule"),
-      sb.from("payroll_runs").select("id, period_year, period_month")
-        .order("period_year", { ascending: false }).order("period_month", { ascending: false }).limit(1).maybeSingle(),
+      sb.from("payroll_runs").select("id, period_year, period_month, status")
+        .order("period_year", { ascending: false }).order("period_month", { ascending: false }),
     ]);
     if (docs.error) throw docs.error;
-    return { docs: docs.data ?? [], emps: emps.data ?? [], run: run.data };
+    return { docs: docs.data ?? [], emps: emps.data ?? [], runs: runs.data ?? [] };
   });
 
   if (loading) return <div className="note">Chargement des documents…</div>;
   if (error) return <div className="alert rg"><span className="ic">⚠</span><div>Erreur : {error}</div></div>;
   const d = data!;
+  const MOIS_COURT = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+  const runChoisi = runId || (d.runs[0]?.id ?? "");
+  const nbPages = Math.max(1, Math.ceil(d.docs.length / PAR_PAGE));
+  const pageDocs = d.docs.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
 
   function telecharger(type: string, params: Record<string, string> = {}, format: "pdf" | "xlsx" = "pdf") {
     const qs = new URLSearchParams({ type, ...params, ...(format === "xlsx" ? { format } : {}) }).toString();
@@ -63,8 +71,18 @@ export default function Documents() {
   return (
     <div>
       <div className="panel" style={{ marginBottom: 18, borderLeft: "4px solid var(--or)" }}>
-        <div className="hd"><h3>📑 Documents administratifs — déclarations légales</h3>
-          {d.run && <span className="note" style={{ marginLeft: 8 }}>période : {String(d.run.period_month).padStart(2, "0")}/{d.run.period_year}</span>}
+        <div className="hd">
+          <h3>📑 Documents administratifs — déclarations légales</h3>
+          <span className="sp" />
+          <label style={{ margin: 0, textTransform: "none", letterSpacing: 0 }}>Période :</label>
+          <select style={{ width: 210 }} value={runChoisi} onChange={(e) => setRunId(e.target.value)}>
+            {d.runs.map((r) => (
+              <option key={r.id} value={r.id}>
+                {MOIS_COURT[r.period_month]} {r.period_year}{r.status === "cloture" ? " — Clôturé" : " — Brouillon"}
+              </option>
+            ))}
+            {d.runs.length === 0 && <option value="">Aucune paie générée</option>}
+          </select>
         </div>
         <table>
           <tbody>
@@ -74,11 +92,11 @@ export default function Documents() {
                 <tr key={type}>
                   <td>📄 {libelle}</td>
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                    {besoinRun && !d.run
+                    {besoinRun && !runChoisi
                       ? <span className="note">aucune paie générée</span>
                       : <>
-                          <button className="btn btn-o btn-sm" onClick={() => telecharger(type, besoinRun ? { run: d.run!.id } : {})}>⇩ Générer le PDF</button>{" "}
-                          <button className="btn btn-o btn-sm" onClick={() => telecharger(type, besoinRun ? { run: d.run!.id } : {}, "xlsx")}>⇩ Générer le Excel</button>
+                          <button className="btn btn-o btn-sm" onClick={() => telecharger(type, besoinRun ? { run: runChoisi } : {})}>⇩ Générer le PDF</button>{" "}
+                          <button className="btn btn-o btn-sm" onClick={() => telecharger(type, besoinRun ? { run: runChoisi } : {}, "xlsx")}>⇩ Générer le Excel</button>
                         </>}
                   </td>
                 </tr>
@@ -99,11 +117,15 @@ export default function Documents() {
       </div>
 
       <div className="panel">
-        <div className="hd"><h3>Documents générés récemment</h3></div>
+        <div className="hd">
+          <h3>Documents générés récemment</h3>
+          <span className="sp" />
+          <span className="note">historique limité à 100 — les plus anciens sont supprimés automatiquement</span>
+        </div>
         <table>
           <tbody>
             <tr><th>Document</th><th>Salarié</th><th>Période</th><th>Date</th><th></th></tr>
-            {d.docs.map((doc) => {
+            {pageDocs.map((doc) => {
               const emp = doc.employees as unknown as { first_name: string; last_name: string } | null;
               return (
                 <tr key={doc.id}>
@@ -115,7 +137,7 @@ export default function Documents() {
                     <button className="btn btn-g btn-sm" onClick={() => {
                       const besoinRun = ["journal_paie", "declaration_cnss", "etat_rts", "etat_salaires"].includes(doc.doc_type);
                       const empDoc = (doc as unknown as { employee_id?: string }).employee_id;
-                      if (besoinRun && d.run) telecharger(doc.doc_type, { run: d.run.id });
+                      if (besoinRun && runChoisi) telecharger(doc.doc_type, { run: runChoisi });
                       else if (empDoc) telecharger(doc.doc_type, { employee: empDoc });
                       else if (!besoinRun) telecharger(doc.doc_type);
                     }}>⇩ PDF</button>
@@ -126,6 +148,16 @@ export default function Documents() {
             {d.docs.length === 0 && <tr><td colSpan={5} className="note">Aucun document généré.</td></tr>}
           </tbody>
         </table>
+        <div className="pgn">
+          <span>{d.docs.length} document{d.docs.length > 1 ? "s" : ""} — page {page} sur {nbPages}</span>
+          <div className="pgs">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>‹</button>
+            {Array.from({ length: nbPages }, (_, i) => i + 1).map((n) => (
+              <button key={n} className={n === page ? "on" : ""} onClick={() => setPage(n)}>{n}</button>
+            ))}
+            <button onClick={() => setPage((p) => Math.min(nbPages, p + 1))} disabled={page === nbPages}>›</button>
+          </div>
+        </div>
       </div>
 
       {modal && (

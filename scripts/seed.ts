@@ -183,6 +183,7 @@ async function main() {
     const [last, ...firstParts] = f.nom.split(" ");
     const [row] = await ins("employees", {
       company_id: G, matricule: f.matricule, last_name: last, first_name: firstParts.join(" "),
+      civility: ["EMP-005", "EMP-007"].includes(f.matricule) ? "Mme" : "M.",
       birth_date: m.birth, hire_date: m.hire, contract_type: m.contract ?? "CDI",
       contract_end_date: m.end ?? null, department_id: dep(m.dep), position_id: post(m.post),
       phone: m.phone, email: `${firstParts.join(".").toLowerCase()}.${last.toLowerCase()}@garaya.gn`.replace(/\s/g, ""),
@@ -204,7 +205,7 @@ async function main() {
     .in("id", [empIds["EMP-007"], empIds["EMP-008"]]);
   // DIALLO Fatoumata — période d'essai (maquette)
   const [diallo] = await ins("employees", {
-    company_id: G, matricule: "EMP-024", last_name: "DIALLO", first_name: "Fatoumata",
+    company_id: G, matricule: "EMP-024", last_name: "DIALLO", first_name: "Fatoumata", civility: "Mme",
     birth_date: "1998-02-14", hire_date: "2026-05-20", trial_end_date: "2026-07-20",
     department_id: dep("DRH"), position_id: post("Assistante RH"), manager_id: empIds["EMP-004"],
     email: "f.diallo@garaya.gn", status: "essai",

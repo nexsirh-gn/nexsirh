@@ -10,11 +10,11 @@ import {
 import { calculerSoldeToutCompte, BAREME_STC_DEFAUT, type MotifDepart } from "@/lib/paie/solde";
 import {
   xlsxDeclarationCnss, xlsxEtatRts, xlsxEtatSalaires, xlsxJournalPaie,
-  xlsxRegistrePersonnel, xlsxSuiviConges, xlsxFicheIndividuelle,
+  xlsxRegistrePersonnel, xlsxSuiviConges, xlsxFicheIndividuelle, xlsxBilanSocial,
 } from "@/lib/excel/documents";
 
 const TYPES_XLSX = ["declaration_cnss", "etat_rts", "etat_salaires", "journal_paie",
-  "registre_personnel", "suivi_conges", "fiche_individuelle"];
+  "registre_personnel", "suivi_conges", "fiche_individuelle", "bilan_social"];
 
 function reponseFichier(contenu: Uint8Array | Buffer, nom: string, xlsx: boolean) {
   return new NextResponse(Buffer.from(contenu), {
@@ -42,6 +42,7 @@ const TITRES: Record<string, string> = {
   etat_salaires: "État des salaires",
   registre_personnel: "Registre du personnel",
   suivi_conges: "Suivi des congés",
+  bilan_social: "Bilan social annuel",
 };
 
 const erreur = (msg: string, status = 400) => NextResponse.json({ error: msg }, { status });
@@ -92,7 +93,7 @@ export async function GET(req: Request) {
 
   // Documents d'entreprise : réservés aux rôles paie/RH (un employé n'a pas
   // à produire un journal de paie, même limité à sa propre ligne par la RLS)
-  const TYPES_ENTREPRISE = ["journal_paie", "etat_rts", "declaration_cnss", "etat_salaires", "registre_personnel", "suivi_conges"];
+  const TYPES_ENTREPRISE = ["journal_paie", "etat_rts", "declaration_cnss", "etat_salaires", "registre_personnel", "suivi_conges", "bilan_social"];
   if (TYPES_ENTREPRISE.includes(type) && !["admin", "rh", "dg", "comptable"].includes(profil?.role ?? "")) {
     return erreur("Document réservé aux rôles RH / Direction / Comptable.", 403);
   }
@@ -214,6 +215,55 @@ export async function GET(req: Request) {
     contenu = xlsx
       ? await xlsxRegistrePersonnel(entreprise, salaries, auteur)
       : await registrePersonnel(entreprise, salaries);
+  }
+
+  // ----- Bilan social annuel (Excel uniquement) -----
+  else if (type === "bilan_social") {
+    const annee = Number(url.searchParams.get("annee") ?? new Date().getFullYear());
+    periode = String(annee);
+    nomFichier = `bilan_social_${annee}`;
+    const [{ data: emps }, { data: runs }, { data: slips }] = await Promise.all([
+      sb.from("employees").select("*, positions(title)").order("matricule"),
+      sb.from("payroll_runs").select("id, period_year, period_month").eq("period_year", annee)
+        .order("period_month"),
+      sb.from("payslips").select("payroll_run_id, gross, cnss_employee, cnss_employer, rts, vf, cfpa, net_pay"),
+    ]);
+    if (!emps || emps.length === 0) return erreur("Aucun salarié visible.", 404);
+    const salaries = emps.map((d) => ({
+      ...d,
+      poste: (d.positions as { title: string } | null)?.title ?? null,
+      departement: null,
+    })) as Salarie[];
+    const actifs = salaries.filter((s) => s.status !== "sorti");
+    const annees = (dte: string) => (Date.now() - new Date(dte).getTime()) / (365.25 * 86400e3);
+    const periodes = (runs ?? []).map((r) => {
+      const l = (slips ?? []).filter((s) => s.payroll_run_id === r.id);
+      return {
+        periode: `${MOIS[r.period_month]} ${r.period_year}`,
+        effectif: l.length,
+        brut: l.reduce((s, x) => s + x.gross, 0),
+        cotisSal: l.reduce((s, x) => s + x.cnss_employee + x.rts, 0),
+        chargesPat: l.reduce((s, x) => s + x.cnss_employer + x.vf + x.cfpa, 0),
+        net: l.reduce((s, x) => s + x.net_pay, 0),
+      };
+    });
+    const totBrut = periodes.reduce((s, p) => s + p.brut, 0);
+    const femmes = actifs.filter((s) => s.civility && s.civility !== "M.").length;
+    contenu = await xlsxBilanSocial(entreprise, annee, {
+      indicateurs: [
+        { libelle: "Effectif actif (au jour de génération)", valeur: actifs.length },
+        { libelle: "Effectif total inscrit au registre", valeur: salaries.length },
+        { libelle: "Ancienneté moyenne (ans)", valeur: actifs.length ? (actifs.reduce((s, x) => s + annees(x.hire_date), 0) / actifs.length).toFixed(1).replace(".", ",") : "-" },
+        { libelle: "Âge moyen (ans)", valeur: actifs.length ? (actifs.reduce((s, x) => s + annees(x.birth_date), 0) / actifs.length).toFixed(1).replace(".", ",") : "-" },
+        { libelle: "Ratio femmes / hommes", valeur: actifs.length ? `${Math.round((femmes / actifs.length) * 100)} % / ${100 - Math.round((femmes / actifs.length) * 100)} %` : "-" },
+        { libelle: `Masse salariale brute ${annee} (GNF)`, valeur: totBrut },
+        { libelle: `Cumul RTS versé ${annee} (GNF)`, valeur: (slips ?? []).reduce((s, x) => s + x.rts, 0) },
+        { libelle: `Cumul CNSS salariale + patronale ${annee} (GNF)`, valeur: (slips ?? []).reduce((s, x) => s + x.cnss_employee + x.cnss_employer, 0) },
+        { libelle: `Coût employeur total ${annee} (GNF)`, valeur: totBrut + periodes.reduce((s, p) => s + p.chargesPat, 0) },
+      ],
+      periodes,
+      salaries,
+    }, auteur);
   } else {
     // suivi_conges
     const annee = 2026;

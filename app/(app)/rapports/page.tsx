@@ -46,7 +46,8 @@ export default function Rapports() {
       <div className="tools">
         <span className="chip on">2026</span>
         <span className="sp" />
-        <button className="btn btn-o" onClick={() => toast("Export Excel du bilan social généré")}>⇩ Bilan social Excel</button>
+        <a className="btn btn-o" href="/api/documents/generer?type=bilan_social&format=xlsx&annee=2026"
+          onClick={() => toast("Génération du bilan social Excel…")}>⇩ Bilan social Excel</a>
         <button className="btn btn-o" onClick={() => toast("Connexion Power BI : lien de source de données copié")}>◫ Source Power BI</button>
       </div>
 

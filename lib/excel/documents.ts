@@ -287,6 +287,69 @@ export async function xlsxSuiviConges(
 }
 
 // ============================================================
+// BILAN SOCIAL ANNUEL (3 feuilles : indicateurs, paie par période, effectif)
+// ============================================================
+export async function xlsxBilanSocial(
+  e: Entreprise,
+  annee: number,
+  d: {
+    indicateurs: { libelle: string; valeur: string | number }[];
+    periodes: { periode: string; effectif: number; brut: number; cotisSal: number; chargesPat: number; net: number }[];
+    salaries: Salarie[];
+  },
+  auteur: string
+) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Nex'SIRH";
+
+  // ----- Feuille 1 : Indicateurs -----
+  const ws1 = wb.addWorksheet("Indicateurs");
+  ws1.columns = [{ width: 42 }, { width: 24 }];
+  bandeau(ws1, 2, `BILAN SOCIAL ${annee} - ${e.name.toUpperCase()}`, `Indicateurs annuels — généré depuis les données de paie réelles`, COULEURS.vert);
+  let l = 4;
+  for (const ind of d.indicateurs) {
+    ws1.getCell(l, 1).value = ind.libelle;
+    const c = ws1.getCell(l, 2);
+    c.value = ind.valeur;
+    c.font = { bold: true };
+    if (typeof ind.valeur === "number") c.numFmt = "#,##0";
+    c.border = { bottom: { style: "hair" } };
+    ws1.getCell(l, 1).border = { bottom: { style: "hair" } };
+    l++;
+  }
+  pied(ws1, l + 1, auteur);
+
+  // ----- Feuille 2 : Paie par période -----
+  const ws2 = wb.addWorksheet("Paie par période");
+  ws2.columns = [{ width: 16 }, { width: 12 }, { width: 16 }, { width: 18 }, { width: 18 }, { width: 16 }];
+  bandeau(ws2, 6, "MASSE SALARIALE PAR PÉRIODE", `Année ${annee}`, COULEURS.vert);
+  let l2 = 4;
+  l2 = enteteTableau(ws2, l2, ["Période", "Effectif payé", "Brut (GNF)", "Cotis. salariales", "Charges patronales", "Net payé"], COULEURS.vert);
+  l2 = lignesTableau(ws2, l2, d.periodes.map((p) => [p.periode, p.effectif, p.brut, p.cotisSal, p.chargesPat, p.net]), [3, 4, 5, 6]);
+  l2 = ligneTotaux(ws2, l2, ["TOTAL", null,
+    d.periodes.reduce((s, p) => s + p.brut, 0),
+    d.periodes.reduce((s, p) => s + p.cotisSal, 0),
+    d.periodes.reduce((s, p) => s + p.chargesPat, 0),
+    d.periodes.reduce((s, p) => s + p.net, 0)], [3, 4, 5, 6]);
+  pied(ws2, l2 + 1, auteur);
+
+  // ----- Feuille 3 : Effectif -----
+  const ws3 = wb.addWorksheet("Effectif");
+  ws3.columns = [{ width: 12 }, { width: 28 }, { width: 8 }, { width: 13 }, { width: 13 }, { width: 10 }, { width: 22 }, { width: 10 }];
+  bandeau(ws3, 8, "EFFECTIF", `${d.salaries.length} salariés`, COULEURS.vert);
+  let l3 = 4;
+  l3 = enteteTableau(ws3, l3, ["Matricule", "Nom & Prénom", "Sexe", "Naissance", "Embauche", "Contrat", "Poste", "Statut"], COULEURS.vert);
+  l3 = lignesTableau(ws3, l3, d.salaries.map((s) => [
+    s.matricule, `${s.last_name.toUpperCase()} ${s.first_name}`,
+    s.civility === "M." ? "M" : "F", dateFr(s.birth_date), dateFr(s.hire_date),
+    s.contract_type, s.poste ?? "-", s.status,
+  ]), []);
+  pied(ws3, l3 + 1, auteur);
+
+  return buffer(wb);
+}
+
+// ============================================================
 // FICHE INDIVIDUELLE (bandeau or, blocs)
 // ============================================================
 export async function xlsxFicheIndividuelle(
