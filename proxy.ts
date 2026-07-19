@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/connexion", "/inscription", "/mot-de-passe-oublie"];
 
-export async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -33,10 +33,26 @@ export async function middleware(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p)) || path === "/";
   const isAdminLogin = path === "/admin";
 
+  // Non connecté → page de connexion de l'espace concerné
   if (!user && !isPublic && !isAdminLogin) {
     const url = request.nextUrl.clone();
     url.pathname = path.startsWith("/admin") ? "/admin" : "/connexion";
     return NextResponse.redirect(url);
+  }
+
+  // Console plateforme : réservée au rôle super_admin (la RLS limite déjà les
+  // données, mais l'ACCÈS à la console est lui-même un contrôle de sécurité)
+  if (user && path.startsWith("/admin") && !isAdminLogin) {
+    const { data: profil } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    if (profil?.role !== "super_admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;

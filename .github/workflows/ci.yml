@@ -1,0 +1,48 @@
+# CI Nex'SIRH — bloque tout merge si les tests échouent (interdit absolu #8)
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Lint (ESLint + React Compiler)
+        run: npm run lint
+
+      - name: Tests unitaires — moteur de paie (fixtures GARAYA au franc près)
+        run: npx vitest run
+
+      - name: Build Next.js
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Tests d'isolation multi-tenant (RLS)
+        # Nécessite les secrets du dépôt (Settings → Secrets and variables → Actions) :
+        # NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Secrets Supabase absents du dépôt — les tests d'isolation NE PEUVENT PAS tourner."
+            echo "::error::Ajoutez-les dans Settings → Secrets and variables → Actions (interdit absolu #8)."
+            exit 1
+          fi
+          npm run test:isolation
