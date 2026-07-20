@@ -83,8 +83,19 @@ export default function Rapports() {
         <div className="hd"><h3>États prêts à imprimer</h3></div>
         <table>
           <tbody>
-            {["État des effectifs par département", "Registre de l’employeur (inspection du travail)", "Synthèse masse salariale annuelle", "État des contrats à échéance"].map((t) => (
-              <tr key={t}><td>📄 {t}</td><td style={{ textAlign: "right" }}><button className="btn btn-o btn-sm" onClick={() => toast("PDF réel : étape O (génération serveur)")}>Générer</button></td></tr>
+            {([
+              ["État des effectifs par département", "effectifs_departement"],
+              ["Registre de l’employeur (inspection du travail)", "registre_personnel"],
+              ["Synthèse masse salariale annuelle", "synthese_masse_salariale&annee=2026"],
+              ["État des contrats à échéance", "contrats_echeance"],
+            ] as [string, string][]).map(([t, type]) => (
+              <tr key={type}>
+                <td>📄 {t}</td>
+                <td style={{ textAlign: "right" }}>
+                  <a className="btn btn-o btn-sm" href={`/api/documents/generer?type=${type}`} target="_blank" rel="noopener"
+                    onClick={() => toast(`Génération : ${t}…`)}>Générer</a>
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>

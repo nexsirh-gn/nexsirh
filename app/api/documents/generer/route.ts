@@ -5,6 +5,7 @@ import {
   attestationTravail, certificatTravail, certificatConge, soldeToutCompte,
   ficheIndividuelle, journalPaie, etatRts, declarationCnss, etatSalaires,
   registrePersonnel, suiviConges,
+  etatEffectifs, syntheseMasseSalariale, etatContratsEcheance,
   type Entreprise, type Salarie, type LignePaie,
 } from "@/lib/pdf/documents";
 import { calculerSoldeToutCompte, BAREME_STC_DEFAUT, type MotifDepart } from "@/lib/paie/solde";
@@ -43,6 +44,9 @@ const TITRES: Record<string, string> = {
   registre_personnel: "Registre du personnel",
   suivi_conges: "Suivi des congés",
   bilan_social: "Bilan social annuel",
+  effectifs_departement: "État des effectifs par département",
+  synthese_masse_salariale: "Synthèse masse salariale annuelle",
+  contrats_echeance: "État des contrats à échéance",
 };
 
 const erreur = (msg: string, status = 400) => NextResponse.json({ error: msg }, { status });
@@ -93,7 +97,7 @@ export async function GET(req: Request) {
 
   // Documents d'entreprise : réservés aux rôles paie/RH (un employé n'a pas
   // à produire un journal de paie, même limité à sa propre ligne par la RLS)
-  const TYPES_ENTREPRISE = ["journal_paie", "etat_rts", "declaration_cnss", "etat_salaires", "registre_personnel", "suivi_conges", "bilan_social"];
+  const TYPES_ENTREPRISE = ["journal_paie", "etat_rts", "declaration_cnss", "etat_salaires", "registre_personnel", "suivi_conges", "bilan_social", "effectifs_departement", "synthese_masse_salariale", "contrats_echeance"];
   if (TYPES_ENTREPRISE.includes(type) && !["admin", "rh", "dg", "comptable"].includes(profil?.role ?? "")) {
     return erreur("Document réservé aux rôles RH / Direction / Comptable.", 403);
   }
@@ -264,7 +268,74 @@ export async function GET(req: Request) {
       periodes,
       salaries,
     }, auteur);
-  } else {
+  }
+
+  // ----- État des effectifs par département (PDF) -----
+  else if (type === "effectifs_departement") {
+    const { data: emps } = await sb.from("employees")
+      .select("status, contract_type, departments(name)");
+    if (!emps) return erreur("Aucun salarié visible.", 404);
+    const enPoste = emps.filter((e) => e.status !== "sorti");
+    const parDep = new Map<string, { actifs: number; essai: number; cdd: number }>();
+    for (const e of enPoste) {
+      const nom = (e.departments as unknown as { name: string } | null)?.name ?? "Sans département";
+      const acc = parDep.get(nom) ?? { actifs: 0, essai: 0, cdd: 0 };
+      if (e.status === "essai") acc.essai++; else acc.actifs++;
+      if (e.contract_type === "CDD") acc.cdd++;
+      parDep.set(nom, acc);
+    }
+    const lignes = [...parDep.entries()]
+      .map(([departement, v]) => ({ departement, ...v }))
+      .sort((a, b) => a.departement.localeCompare(b.departement));
+    contenu = await etatEffectifs(entreprise, lignes);
+  }
+
+  // ----- Synthèse masse salariale annuelle (PDF) -----
+  else if (type === "synthese_masse_salariale") {
+    const annee = Number(url.searchParams.get("annee") ?? new Date().getFullYear());
+    periode = String(annee);
+    nomFichier = `synthese_masse_salariale_${annee}`;
+    const [{ data: runs }, { data: slips }] = await Promise.all([
+      sb.from("payroll_runs").select("id, period_year, period_month").eq("period_year", annee).order("period_month"),
+      sb.from("payslips").select("payroll_run_id, gross, cnss_employer, vf, cfpa, net_pay"),
+    ]);
+    if (!runs || runs.length === 0) return erreur(`Aucune paie générée pour l'année ${annee}.`, 404);
+    const periodes = runs.map((r) => {
+      const l = (slips ?? []).filter((s) => s.payroll_run_id === r.id);
+      return {
+        periode: `${MOIS[r.period_month]} ${r.period_year}`,
+        effectif: l.length,
+        brut: l.reduce((s, x) => s + x.gross, 0),
+        chargesPat: l.reduce((s, x) => s + x.cnss_employer + x.vf + x.cfpa, 0),
+        net: l.reduce((s, x) => s + x.net_pay, 0),
+      };
+    });
+    contenu = await syntheseMasseSalariale(entreprise, annee, periodes);
+  }
+
+  // ----- État des contrats à échéance (PDF, fenêtre J-30) -----
+  else if (type === "contrats_echeance") {
+    const { data: emps } = await sb.from("employees")
+      .select("matricule, first_name, last_name, status, contract_type, contract_end_date, trial_end_date, id_doc_expiry")
+      .neq("status", "sorti");
+    const maintenant = new Date();
+    const j30 = new Date(maintenant.getTime() + 30 * 86400e3);
+    const jours = (d: string) => Math.round((new Date(d).getTime() - maintenant.getTime()) / 86400e3);
+    const lignes: { matricule: string; nom: string; type: string; echeance: string; jours: number }[] = [];
+    for (const e of emps ?? []) {
+      const nom = `${e.last_name.toUpperCase()} ${e.first_name}`;
+      if (e.contract_type === "CDD" && e.contract_end_date && new Date(e.contract_end_date) <= j30)
+        lignes.push({ matricule: e.matricule, nom, type: "Fin de CDD", echeance: e.contract_end_date, jours: jours(e.contract_end_date) });
+      if (e.status === "essai" && e.trial_end_date && new Date(e.trial_end_date) <= j30)
+        lignes.push({ matricule: e.matricule, nom, type: "Fin de période d'essai", echeance: e.trial_end_date, jours: jours(e.trial_end_date) });
+      if (e.id_doc_expiry && new Date(e.id_doc_expiry) <= j30)
+        lignes.push({ matricule: e.matricule, nom, type: "Pièce d'identité à renouveler", echeance: e.id_doc_expiry, jours: jours(e.id_doc_expiry) });
+    }
+    lignes.sort((a, b) => a.jours - b.jours);
+    contenu = await etatContratsEcheance(entreprise, lignes);
+  }
+
+  else {
     // suivi_conges
     const annee = 2026;
     periode = String(annee);
@@ -294,7 +365,7 @@ export async function GET(req: Request) {
     company_id: profil!.company_id,
     employee_id: employeeId ?? null,
     doc_type: type,
-    category: ["journal_paie", "etat_rts", "declaration_cnss", "etat_salaires"].includes(type) ? "paie"
+    category: ["journal_paie", "etat_rts", "declaration_cnss", "etat_salaires", "synthese_masse_salariale"].includes(type) ? "paie"
       : ["registre_personnel", "suivi_conges"].includes(type) ? "legal" : "rh",
     title: TITRES[type],
     period: periode,

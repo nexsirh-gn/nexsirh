@@ -1,5 +1,5 @@
 import "server-only";
-import { PagePDF, gnf, dateFr, GRIS } from "./commun";
+import { PagePDF, gnf, nombre, dateFr, GRIS } from "./commun";
 
 /** Gabarits PDF de tous les documents RH et administratifs. */
 
@@ -335,5 +335,105 @@ export async function suiviConges(
     ])
   );
   p.pied("Congés annuels : 2,5 jours ouvrables par mois travaillé + majoration d'ancienneté.");
+  return p.sauver();
+}
+
+// ============================================================
+// ÉTATS DE SYNTHÈSE (rapports RH)
+// ============================================================
+
+/** État des effectifs ventilé par département (avec effectif total). */
+export async function etatEffectifs(
+  e: Entreprise,
+  lignes: { departement: string; actifs: number; essai: number; cdd: number }[]
+): Promise<Uint8Array> {
+  const p = await PagePDF.creer();
+  const total = lignes.reduce((s, l) => s + l.actifs + l.essai, 0);
+  p.entete({ entreprise: e, titre: "État des effectifs par département", sousTitre: `${total} salariés en poste` });
+  p.tableau(
+    [
+      { titre: "Département", largeur: 4 },
+      { titre: "Actifs", largeur: 1.6, droite: true },
+      { titre: "En essai", largeur: 1.8, droite: true },
+      { titre: "dont CDD", largeur: 1.8, droite: true },
+      { titre: "Total", largeur: 1.6, droite: true },
+    ],
+    lignes.map((l) => [
+      l.departement,
+      nombre(l.actifs), nombre(l.essai), nombre(l.cdd), nombre(l.actifs + l.essai),
+    ]),
+    {
+      totaux: [
+        "TOTAL ENTREPRISE",
+        nombre(lignes.reduce((s, l) => s + l.actifs, 0)),
+        nombre(lignes.reduce((s, l) => s + l.essai, 0)),
+        nombre(lignes.reduce((s, l) => s + l.cdd, 0)),
+        nombre(total),
+      ],
+    }
+  );
+  p.pied("Effectif en poste : salariés actifs et en période d'essai (hors sortis).");
+  return p.sauver();
+}
+
+/** Synthèse de la masse salariale annuelle (une ligne par période de paie). */
+export async function syntheseMasseSalariale(
+  e: Entreprise, annee: number,
+  periodes: { periode: string; effectif: number; brut: number; chargesPat: number; net: number }[]
+): Promise<Uint8Array> {
+  const p = await PagePDF.creer();
+  p.entete({ entreprise: e, titre: "Synthèse masse salariale annuelle", sousTitre: `Année ${annee}` });
+  const totBrut = periodes.reduce((s, x) => s + x.brut, 0);
+  const totPat = periodes.reduce((s, x) => s + x.chargesPat, 0);
+  p.tableau(
+    [
+      { titre: "Période", largeur: 3 },
+      { titre: "Effectif payé", largeur: 2, droite: true },
+      { titre: "Masse brute", largeur: 2.4, droite: true },
+      { titre: "Charges patronales", largeur: 2.6, droite: true },
+      { titre: "Net versé", largeur: 2.2, droite: true },
+    ],
+    periodes.map((x) => [
+      x.periode, nombre(x.effectif), gnf(x.brut), gnf(x.chargesPat), gnf(x.net),
+    ]),
+    {
+      totaux: [
+        `TOTAL ${annee}`, "",
+        gnf(totBrut), gnf(totPat), gnf(periodes.reduce((s, x) => s + x.net, 0)),
+      ],
+    }
+  );
+  p.y -= 10;
+  p.bandeau("COÛT EMPLOYEUR TOTAL", `${gnf(totBrut + totPat)} GNF`);
+  p.pied("Coût employeur = masse brute + CNSS patronale + Versement Forfaitaire + CFPA.");
+  return p.sauver();
+}
+
+/** État des contrats arrivant à échéance (CDD, périodes d'essai, pièces d'identité). */
+export async function etatContratsEcheance(
+  e: Entreprise,
+  lignes: { matricule: string; nom: string; type: string; echeance: string; jours: number }[]
+): Promise<Uint8Array> {
+  const p = await PagePDF.creer();
+  p.entete({ entreprise: e, titre: "État des contrats à échéance", sousTitre: `${lignes.length} échéance(s)` });
+  if (lignes.length === 0) {
+    p.y -= 20;
+    p.paragraphe("Aucune échéance de contrat, de période d'essai ou de pièce d'identité n'est à signaler à ce jour.");
+  } else {
+    p.tableau(
+      [
+        { titre: "Mat.", largeur: 1.4 },
+        { titre: "Salarié", largeur: 3.4 },
+        { titre: "Échéance concernée", largeur: 3.2 },
+        { titre: "Date", largeur: 1.8 },
+        { titre: "Dans", largeur: 1.6, droite: true },
+      ],
+      lignes.map((l) => [
+        l.matricule, l.nom, l.type, dateFr(l.echeance),
+        l.jours < 0 ? "dépassé" : `${l.jours} j`,
+      ])
+    );
+  }
+  p.pied("Alertes générées à J-30 : fins de CDD, fins de période d'essai, pièces d'identité expirant.");
   return p.sauver();
 }
