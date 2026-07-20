@@ -229,11 +229,12 @@ export async function modifierEmploye(
 ): Promise<Result> {
   try {
     const { sb } = await contexteRH();
-    // Poste, département, catégorie, salaire : jamais ici → mouvement journalisé (§10.5).
+    // Salaire/primes : jamais ici → mouvement journalisé (§10.5).
     const AUTORISES = ["civility", "marital_status", "last_name", "first_name", "phone", "email",
       "address", "payment_mode", "bank_name", "bank_account",
       "emergency_contact_name", "emergency_contact_phone", "cnss_number",
-      "nationality", "birth_place", "id_doc_type", "id_doc_number", "id_doc_expiry", "children_count"];
+      "nationality", "birth_place", "id_doc_type", "id_doc_number", "id_doc_expiry", "children_count",
+      "category", "qualification", "manager_id", "monthly_hours"];
     const patch = Object.fromEntries(Object.entries(champs).filter(([k]) => AUTORISES.includes(k)));
     if (Object.keys(patch).length === 0) return err("Aucun champ modifiable fourni.");
     // children_count est un entier ; les selects/inputs renvoient des strings
@@ -242,7 +243,14 @@ export async function modifierEmploye(
       if (!Number.isFinite(n) || n < 0) return err("Nombre d'enfants invalide.");
       patch.children_count = n;
     }
-    // id_doc_expiry : chaîne vide → null (colonne date)
+    // monthly_hours est numeric (ex. 173,33) ; on accepte virgule ou point
+    if ("monthly_hours" in patch) {
+      const h = parseFloat(String(patch.monthly_hours).replace(",", "."));
+      if (!Number.isFinite(h) || h <= 0) return err("Horaire mensuel invalide.");
+      patch.monthly_hours = h;
+    }
+    // manager_id / id_doc_expiry : chaîne vide → null
+    if (patch.manager_id === "") patch.manager_id = null;
     if (patch.id_doc_expiry === "") patch.id_doc_expiry = null;
     const { error } = await sb.from("employees").update(patch).eq("id", employeeId);
     if (error) return err(error);

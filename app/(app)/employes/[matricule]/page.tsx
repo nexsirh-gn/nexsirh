@@ -32,7 +32,7 @@ export default function FicheEmploye() {
     if (emp.error) throw emp.error;
     if (!emp.data) return null;
     const id = emp.data.id;
-    const [comp, solde, conges, docs, mouvements, prets, slips] = await Promise.all([
+    const [comp, solde, conges, docs, mouvements, prets, slips, managers] = await Promise.all([
       sb.from("employee_compensation").select("*").eq("employee_id", id).maybeSingle(),
       sb.from("leave_balances").select("*").eq("employee_id", id).eq("year", 2026).maybeSingle(),
       sb.from("leave_requests").select("*").eq("employee_id", id).order("start_date", { ascending: false }),
@@ -40,6 +40,8 @@ export default function FicheEmploye() {
       sb.from("employee_movements").select("*").eq("employee_id", id).order("effective_date", { ascending: false }),
       sb.from("loans").select("*").eq("employee_id", id).eq("status", "actif"),
       sb.from("payslips").select("id, payroll_runs(period_year, period_month)").eq("employee_id", id),
+      // Managers possibles pour le N+1 (actifs, hors l'employé lui-même)
+      sb.from("employees").select("id, last_name, first_name").eq("status", "actif").neq("id", id).order("last_name"),
     ]);
     // Correspondance période ("2026-06") → id du bulletin, pour le lien PDF
     const bulletinParPeriode = new Map(
@@ -53,13 +55,14 @@ export default function FicheEmploye() {
       conges: conges.data ?? [], docs: docs.data ?? [], mouvements: mouvements.data ?? [], prets: prets.data ?? [],
       anciennete: Math.floor((Date.now() - new Date(emp.data.hire_date).getTime()) / (365.25 * 86400e3)),
       bulletinParPeriode,
+      managers: managers.data ?? [],
     };
   }, [mat]);
 
   if (loading) return <div className="note">Chargement de la fiche…</div>;
   if (error) return <div className="alert rg"><span className="ic">⚠</span><div>Erreur : {error}</div></div>;
   if (!data) return <div className="alert or"><span className="ic">ⓘ</span><div>Salarié {mat} introuvable (ou accès non autorisé).</div></div>;
-  const { emp, comp, solde, conges, docs, mouvements, prets, anciennete, bulletinParPeriode } = data;
+  const { emp, comp, solde, conges, docs, mouvements, prets, anciennete, bulletinParPeriode, managers } = data;
   const nom = `${emp.last_name} ${emp.first_name}`;
   const manager = emp.manager as unknown as { first_name: string; last_name: string } | null;
   const brut = comp
@@ -321,10 +324,33 @@ export default function FicheEmploye() {
                     {["CNI", "Passeport", "Carte de séjour", "Permis de conduire"].map((o) => <option key={o}>{o}</option>)}
                   </select>
                 </div>
+                <div className="fld">
+                  <label>Catégorie</label>
+                  <select
+                    value={editForm.category ?? emp.category ?? "Employé"}
+                    onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                  >
+                    {["Employé", "Agent de maîtrise", "Cadre", "Cadre supérieur"].map((o) => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div className="fld">
+                  <label>Supérieur (N+1)</label>
+                  <select
+                    value={editForm.manager_id ?? emp.manager_id ?? ""}
+                    onChange={(e) => setEditForm({ ...editForm, manager_id: e.target.value })}
+                  >
+                    <option value="">— Aucun —</option>
+                    {managers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.last_name} {m.first_name}</option>
+                    ))}
+                  </select>
+                </div>
                 {/* Champs texte libres */}
                 {([
                   ["last_name", "Nom", emp.last_name],
                   ["first_name", "Prénom", emp.first_name],
+                  ["qualification", "Qualification", emp.qualification],
+                  ["monthly_hours", "Horaire mensuel (h)", emp.monthly_hours != null ? String(emp.monthly_hours) : ""],
                   ["nationality", "Nationalité", emp.nationality],
                   ["birth_place", "Lieu de naissance", emp.birth_place],
                   ["children_count", "Nombre d’enfants", emp.children_count != null ? String(emp.children_count) : ""],
@@ -342,8 +368,9 @@ export default function FicheEmploye() {
                   <div key={champ} className={`fld ${champ === "address" ? "w" : ""}`}>
                     <label>{libelle}</label>
                     <input
-                      type={champ === "children_count" ? "number" : champ === "id_doc_expiry" ? "date" : "text"}
-                      min={champ === "children_count" ? 0 : undefined}
+                      type={champ === "children_count" || champ === "monthly_hours" ? "number" : champ === "id_doc_expiry" ? "date" : "text"}
+                      step={champ === "monthly_hours" ? "0.01" : undefined}
+                      min={champ === "children_count" || champ === "monthly_hours" ? 0 : undefined}
                       value={editForm[champ] ?? valeur ?? ""}
                       onChange={(e) => setEditForm({ ...editForm, [champ]: e.target.value })}
                     />
