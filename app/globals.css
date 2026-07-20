@@ -177,6 +177,11 @@ td.gnf,th.num{text-align:right}
 .mdl .x{margin-left:auto;font-size:20px;color:var(--gris);line-height:1;padding:2px 6px;border-radius:6px}
 .mdl .x:hover{background:var(--menthe2);color:var(--encre)}
 .mdl .mb{padding:20px 24px}
+/* Modale d'édition : corps défilant + sections catégorisées */
+.mdl.lg .mb{max-height:min(70vh,620px);overflow-y:auto}
+.edit-sec{margin-bottom:20px}
+.edit-sec:last-of-type{margin-bottom:0}
+.edit-sec-t{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--vert);padding-bottom:8px;margin-bottom:14px;border-bottom:1px solid var(--ligne)}
 .mdl .mf{display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--ligne);background:var(--menthe2);border-radius:0 0 16px 16px}
 .ic-warn{width:42px;height:42px;border-radius:12px;background:var(--or-p);color:#96690F;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
 .ic-dgr{width:42px;height:42px;border-radius:12px;background:var(--rouge-p);color:var(--rouge);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}

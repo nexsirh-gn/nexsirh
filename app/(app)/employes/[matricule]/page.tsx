@@ -295,88 +295,74 @@ export default function FicheEmploye() {
               <button className="x" onClick={() => setModalEdit(false)}>✕</button>
             </div>
             <div className="mb">
-              <div className="fgrid">
-                {/* Champs à choix — mêmes valeurs que l'assistant de création (nouvel-employe) */}
-                <div className="fld">
-                  <label>Civilité</label>
-                  <select
-                    value={editForm.civility ?? emp.civility ?? "M."}
-                    onChange={(e) => setEditForm({ ...editForm, civility: e.target.value })}
-                  >
-                    {["M.", "Mme", "Mlle"].map((o) => <option key={o}>{o}</option>)}
-                  </select>
-                </div>
-                <div className="fld">
-                  <label>Situation matrimoniale</label>
-                  <select
-                    value={editForm.marital_status ?? emp.marital_status ?? "Célibataire"}
-                    onChange={(e) => setEditForm({ ...editForm, marital_status: e.target.value })}
-                  >
-                    {["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf(ve)"].map((o) => <option key={o}>{o}</option>)}
-                  </select>
-                </div>
-                <div className="fld">
-                  <label>Pièce d’identité</label>
-                  <select
-                    value={editForm.id_doc_type ?? emp.id_doc_type ?? "CNI"}
-                    onChange={(e) => setEditForm({ ...editForm, id_doc_type: e.target.value })}
-                  >
-                    {["CNI", "Passeport", "Carte de séjour", "Permis de conduire"].map((o) => <option key={o}>{o}</option>)}
-                  </select>
-                </div>
-                <div className="fld">
-                  <label>Catégorie</label>
-                  <select
-                    value={editForm.category ?? emp.category ?? "Employé"}
-                    onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                  >
-                    {["Employé", "Agent de maîtrise", "Cadre", "Cadre supérieur"].map((o) => <option key={o}>{o}</option>)}
-                  </select>
-                </div>
-                <div className="fld">
-                  <label>Supérieur (N+1)</label>
-                  <select
-                    value={editForm.manager_id ?? emp.manager_id ?? ""}
-                    onChange={(e) => setEditForm({ ...editForm, manager_id: e.target.value })}
-                  >
-                    <option value="">— Aucun —</option>
-                    {managers.map((m) => (
-                      <option key={m.id} value={m.id}>{m.last_name} {m.first_name}</option>
-                    ))}
-                  </select>
-                </div>
-                {/* Champs texte libres */}
-                {([
-                  ["last_name", "Nom", emp.last_name],
-                  ["first_name", "Prénom", emp.first_name],
-                  ["qualification", "Qualification", emp.qualification],
-                  ["monthly_hours", "Horaire mensuel (h)", emp.monthly_hours != null ? String(emp.monthly_hours) : ""],
-                  ["nationality", "Nationalité", emp.nationality],
-                  ["birth_place", "Lieu de naissance", emp.birth_place],
-                  ["children_count", "Nombre d’enfants", emp.children_count != null ? String(emp.children_count) : ""],
-                  ["id_doc_number", "N° pièce d’identité", emp.id_doc_number],
-                  ["id_doc_expiry", "Expiration pièce (AAAA-MM-JJ)", emp.id_doc_expiry],
-                  ["phone", "Téléphone", emp.phone],
-                  ["email", "Email", emp.email],
-                  ["cnss_number", "N° CNSS", emp.cnss_number],
-                  ["address", "Adresse", emp.address],
-                  ["bank_name", "Banque", emp.bank_name],
-                  ["bank_account", "N° de compte", emp.bank_account],
-                  ["emergency_contact_name", "Contact d’urgence", emp.emergency_contact_name],
-                  ["emergency_contact_phone", "Téléphone d’urgence", emp.emergency_contact_phone],
-                ] as [string, string, string | null][]).map(([champ, libelle, valeur]) => (
-                  <div key={champ} className={`fld ${champ === "address" ? "w" : ""}`}>
-                    <label>{libelle}</label>
-                    <input
-                      type={champ === "children_count" || champ === "monthly_hours" ? "number" : champ === "id_doc_expiry" ? "date" : "text"}
-                      step={champ === "monthly_hours" ? "0.01" : undefined}
-                      min={champ === "children_count" || champ === "monthly_hours" ? 0 : undefined}
-                      value={editForm[champ] ?? valeur ?? ""}
-                      onChange={(e) => setEditForm({ ...editForm, [champ]: e.target.value })}
-                    />
+              {/* Fiche éditable structurée en 4 sections — mêmes catégories que l'affichage */}
+              {([
+                ["État civil", [
+                  { k: "civility", l: "Civilité", opts: ["M.", "Mme", "Mlle"] },
+                  { k: "last_name", l: "Nom" },
+                  { k: "first_name", l: "Prénom" },
+                  { k: "birth_place", l: "Lieu de naissance" },
+                  { k: "nationality", l: "Nationalité" },
+                  { k: "marital_status", l: "Situation matrimoniale", opts: ["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf(ve)"] },
+                  { k: "children_count", l: "Nombre d’enfants", type: "number" },
+                  { k: "cnss_number", l: "N° CNSS" },
+                  { k: "id_doc_type", l: "Type de pièce", opts: ["CNI", "Passeport", "Carte de séjour", "Permis de conduire"] },
+                  { k: "id_doc_number", l: "N° pièce d’identité" },
+                  { k: "id_doc_expiry", l: "Expiration pièce", type: "date" },
+                ]],
+                ["Coordonnées & urgence", [
+                  { k: "phone", l: "Téléphone" },
+                  { k: "email", l: "Email" },
+                  { k: "address", l: "Adresse", wide: true },
+                  { k: "emergency_contact_name", l: "Contact d’urgence" },
+                  { k: "emergency_contact_phone", l: "Téléphone d’urgence" },
+                ]],
+                ["Contrat", [
+                  { k: "category", l: "Catégorie", opts: ["Employé", "Agent de maîtrise", "Cadre", "Cadre supérieur"] },
+                  { k: "qualification", l: "Qualification" },
+                  { k: "manager_id", l: "Supérieur (N+1)", managerSelect: true },
+                  { k: "monthly_hours", l: "Horaire mensuel (h)", type: "number", step: "0.01" },
+                ]],
+                ["Banque & paiement", [
+                  { k: "payment_mode", l: "Mode de paiement", opts: ["Virement", "Chèque", "Espèces"] },
+                  { k: "bank_name", l: "Banque" },
+                  { k: "bank_account", l: "N° de compte", wide: true },
+                ]],
+              ] as [string, { k: string; l: string; opts?: string[]; type?: string; step?: string; wide?: boolean; managerSelect?: boolean }[]][]).map(([titre, champs]) => (
+                <div key={titre} className="edit-sec">
+                  <div className="edit-sec-t">{titre}</div>
+                  <div className="fgrid">
+                    {champs.map((c) => {
+                      const brut = (emp as Record<string, unknown>)[c.k];
+                      const courant = brut == null ? "" : String(brut);
+                      const val = editForm[c.k] ?? courant;
+                      return (
+                        <div key={c.k} className={`fld ${c.wide ? "w" : ""}`}>
+                          <label>{c.l}</label>
+                          {c.managerSelect ? (
+                            <select value={val} onChange={(e) => setEditForm({ ...editForm, [c.k]: e.target.value })}>
+                              <option value="">— Aucun —</option>
+                              {managers.map((m) => <option key={m.id} value={m.id}>{m.last_name} {m.first_name}</option>)}
+                            </select>
+                          ) : c.opts ? (
+                            <select value={val || c.opts[0]} onChange={(e) => setEditForm({ ...editForm, [c.k]: e.target.value })}>
+                              {c.opts.map((o) => <option key={o}>{o}</option>)}
+                            </select>
+                          ) : (
+                            <input
+                              type={c.type ?? "text"}
+                              step={c.step}
+                              min={c.type === "number" ? 0 : undefined}
+                              value={val}
+                              onChange={(e) => setEditForm({ ...editForm, [c.k]: e.target.value })}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
               <div className="alert or" style={{ marginTop: 8 }}>
                 <span className="ic">🔒</span>
                 <div>Le <b>salaire de base et les primes</b> ne se modifient pas ici : utilisez « Nouveau mouvement » pour garder la traçabilité.</div>
