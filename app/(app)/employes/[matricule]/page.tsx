@@ -293,8 +293,27 @@ export default function FicheEmploye() {
             </div>
             <div className="mb">
               <div className="fgrid">
+                {/* Champs à choix — mêmes valeurs que l'assistant de création (nouvel-employe) */}
+                <div className="fld">
+                  <label>Civilité</label>
+                  <select
+                    value={editForm.civility ?? emp.civility ?? "M."}
+                    onChange={(e) => setEditForm({ ...editForm, civility: e.target.value })}
+                  >
+                    {["M.", "Mme", "Mlle"].map((o) => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div className="fld">
+                  <label>Situation matrimoniale</label>
+                  <select
+                    value={editForm.marital_status ?? emp.marital_status ?? "Célibataire"}
+                    onChange={(e) => setEditForm({ ...editForm, marital_status: e.target.value })}
+                  >
+                    {["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf(ve)"].map((o) => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
+                {/* Champs texte libres */}
                 {([
-                  ["civility", "Civilité", emp.civility],
                   ["last_name", "Nom", emp.last_name],
                   ["first_name", "Prénom", emp.first_name],
                   ["phone", "Téléphone", emp.phone],
