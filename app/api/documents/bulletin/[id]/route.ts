@@ -30,6 +30,22 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const comp = slip.companies as unknown as { name: string; address: string | null; nif: string | null; convention: string | null };
   const emp = slip.employees as unknown as { cnss_number: string | null; hire_date: string; positions: { title: string } | null } | null;
 
+  // Cumuls depuis janvier de l'année de la période, jusqu'à la période incluse
+  // (même salarié, mêmes tables de mouvements — pas de valeur inventée).
+  const { data: cumulRows } = await sb
+    .from("payslips")
+    .select("gross, cnss_employee, rts, net_pay, payroll_runs!inner(period_year, period_month)")
+    .eq("employee_id", slip.employee_id)
+    .eq("payroll_runs.period_year", run.period_year)
+    .lte("payroll_runs.period_month", run.period_month);
+  const cumulsAnnuels = (cumulRows ?? []).reduce(
+    (a, p) => ({
+      brut: a.brut + p.gross, cnssSal: a.cnssSal + p.cnss_employee,
+      rts: a.rts + p.rts, net: a.net + p.net_pay,
+    }),
+    { brut: 0, cnssSal: 0, rts: 0, net: 0 },
+  );
+
   const anciennete = emp
     ? `${Math.floor((Date.now() - new Date(emp.hire_date).getTime()) / (365.25 * 86400e3))} ans`
     : "—";
@@ -57,6 +73,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     },
     retenues,
     net: slip.net_pay,
+    cumulsAnnuels,
   });
 
   const nomFichier = `bulletin_${slip.matricule}_${run.period_year}-${String(run.period_month).padStart(2, "0")}.pdf`;

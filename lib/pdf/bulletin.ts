@@ -16,6 +16,8 @@ export interface DonneesBulletin {
   };
   retenues: { libelle: string; montant: number }[];
   net: number;
+  /** Cumuls depuis janvier de l'année en cours, bulletin courant inclus. */
+  cumulsAnnuels?: { brut: number; cnssSal: number; rts: number; net: number };
 }
 
 const VERT = rgb(0.06, 0.36, 0.29);
@@ -115,7 +117,20 @@ export async function genererBulletinPDF(d: DonneesBulletin): Promise<Uint8Array
   page.drawRectangle({ x: M, y: y - 6, width: L, height: 22, color: VERT });
   texte("NET À PAYER", cols.lib, 11, gras, rgb(1, 1, 1));
   droite(`${gnf(d.net)} GNF`, cols.patron, 11, gras, rgb(1, 1, 1));
-  y -= 34;
+  y -= 30;
+
+  // ===== Cumuls annuels =====
+  if (d.cumulsAnnuels) {
+    const cu = d.cumulsAnnuels;
+    page.drawRectangle({ x: M, y: y - 4, width: L, height: 16, color: rgb(0.906, 0.949, 0.933) });
+    texte("Cumuls depuis janvier (période incluse)", cols.lib, 8, gras);
+    y -= 18;
+    rang("Brut cumulé", "", "", "", gnf(cu.brut));
+    rang("CNSS salariale cumulée", "", "", "", gnf(cu.cnssSal));
+    rang("RTS cumulé", "", "", "", gnf(cu.rts));
+    rang("Net cumulé", "", "", "", gnf(cu.net), gras);
+    y -= 6;
+  }
 
   texte("Conservez ce bulletin sans limitation de durée.", M, 7.5, fonte, GRIS);
   y -= 10;

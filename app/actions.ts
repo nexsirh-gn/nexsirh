@@ -336,3 +336,110 @@ export async function genererDocument(input: {
   revalidatePath("/documents");
   return { ok: true };
 }
+
+/** Mon profil (utilisateur connecté) : nom et téléphone sur profiles (RLS : id = auth.uid()) */
+export async function mettreAJourMonProfil(input: { fullName: string; phone: string }): Promise<Result> {
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return err("Non connecté");
+  const { error } = await sb.from("profiles")
+    .update({ full_name: input.fullName, phone: input.phone || null })
+    .eq("id", user.id);
+  if (error) return err(error);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Mes coordonnées (employé du portail) : passe par la fonction security definer update_my_contact */
+export async function mettreAJourMesCoordonnees(input: {
+  phone: string; address: string; emergencyName: string; emergencyPhone: string;
+}): Promise<Result> {
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return err("Non connecté");
+  const { error } = await sb.rpc("update_my_contact", {
+    p_phone: input.phone || null,
+    p_address: input.address || null,
+    p_emergency_contact_name: input.emergencyName || null,
+    p_emergency_contact_phone: input.emergencyPhone || null,
+  });
+  if (error) return err(error);
+  revalidatePath("/portail");
+  return { ok: true };
+}
+
+/**
+ * Inviter un utilisateur : crée le compte Auth (service_role, jamais côté
+ * client) et le profil correspondant. Email d'invitation Supabase natif
+ * (lien de définition de mot de passe) — l'envoi effectif dépend du SMTP
+ * configuré sur le projet Supabase (hors périmètre de cette étape).
+ */
+export async function inviterUtilisateur(input: {
+  email: string; fullName: string; role: string; employeeId?: string;
+}): Promise<Result> {
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return err("Non connecté");
+  const { data: profil } = await sb.from("profiles").select("company_id, role").eq("id", user.id).single();
+  if (!["admin", "rh"].includes(profil?.role ?? "")) return err("Réservé aux rôles RH/Admin.");
+  if (profil?.role === "rh" && input.role === "admin") return err("Le rôle RH ne peut pas créer d'administrateur.");
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return err("Configuration serveur incomplète (clé service_role manquante).");
+
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const admin = createAdminClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+
+  const { data: invite, error: eInvite } = await admin.auth.admin.inviteUserByEmail(input.email, {
+    data: { full_name: input.fullName },
+  });
+  if (eInvite || !invite?.user) return err(eInvite?.message ?? "Échec de l'invitation.");
+
+  const { error: eProfil } = await admin.from("profiles").insert({
+    id: invite.user.id,
+    company_id: profil!.company_id,
+    role: input.role,
+    employee_id: input.employeeId ?? null,
+    full_name: input.fullName,
+    email: input.email,
+  });
+  if (eProfil) {
+    await admin.auth.admin.deleteUser(invite.user.id);
+    return err(eProfil.message);
+  }
+  revalidatePath("/parametrage");
+  return { ok: true };
+}
+
+/** Primes & indemnités : créer / activer-désactiver une ligne de référentiel */
+export async function creerPrimeType(input: {
+  code: string; name: string; taxableRts: boolean; subjectCnss: boolean;
+}): Promise<Result> {
+  try {
+    const { sb, companyId } = await contexteRH();
+    const { error } = await sb.from("premium_types").insert({
+      company_id: companyId, code: input.code.toUpperCase(), name: input.name,
+      taxable_rts: input.taxableRts, subject_cnss: input.subjectCnss,
+    });
+    if (error) return err(error);
+    revalidatePath("/parametrage");
+    return { ok: true };
+  } catch (e) { return err(e as Error); }
+}
+
+/** Types d'absences : créer une ligne de référentiel */
+export async function creerAbsenceType(input: {
+  code: string; name: string; paid: boolean; entitlementDays: number | null;
+}): Promise<Result> {
+  try {
+    const { sb, companyId } = await contexteRH();
+    const { error } = await sb.from("leave_types").insert({
+      company_id: companyId, code: input.code.toUpperCase(), name: input.name,
+      paid: input.paid, entitlement_days: input.entitlementDays,
+    });
+    if (error) return err(error);
+    revalidatePath("/parametrage");
+    return { ok: true };
+  } catch (e) { return err(e as Error); }
+}

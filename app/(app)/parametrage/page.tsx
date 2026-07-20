@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useModal, useToast } from "@/components/providers";
 import { useQuery, formatGNF } from "@/lib/hooks";
 import { createClient } from "@/lib/supabase/client";
+import { creerPrimeType, creerAbsenceType } from "@/app/actions";
 
 type PTab = "pt1" | "pt2" | "pt3" | "pt4" | "pt5" | "pt6";
 const TABS: [PTab, string][] = [
@@ -17,6 +18,13 @@ export default function Parametrage() {
   const [pending, setPending] = useState(false);
   const { om } = useModal();
   const toast = useToast();
+  const [modalPrime, setModalPrime] = useState(false);
+  const [modalAbsence, setModalAbsence] = useState(false);
+  const [pCode, setPCode] = useState(""); const [pNom, setPNom] = useState("");
+  const [pRts, setPRts] = useState(true); const [pCnss, setPCnss] = useState(true);
+  const [aCode, setACode] = useState(""); const [aNom, setANom] = useState("");
+  const [aPaye, setAPaye] = useState(true); const [aDroit, setADroit] = useState("");
+  const [pendingRef, setPendingRef] = useState(false);
 
   const { data, loading, error, refresh } = useQuery(async (sb) => {
     const [company, brackets, rates, holidays, primes, absences, users] = await Promise.all([
@@ -54,6 +62,23 @@ export default function Parametrage() {
     setPending(false);
     if (e) toast(`Erreur : ${e.message}`);
     else { toast("Modifications enregistrées ✓ — tracées dans l’audit"); refresh(); }
+  }
+
+  async function ajouterPrime() {
+    if (!pCode.trim() || !pNom.trim()) { toast("Code et libellé obligatoires."); return; }
+    setPendingRef(true);
+    const res = await creerPrimeType({ code: pCode, name: pNom, taxableRts: pRts, subjectCnss: pCnss });
+    setPendingRef(false);
+    if (res.ok) { toast("Type de prime ajouté ✓"); setModalPrime(false); setPCode(""); setPNom(""); setPRts(true); setPCnss(true); refresh(); }
+    else toast(`Erreur : ${res.error}`);
+  }
+  async function ajouterAbsence() {
+    if (!aCode.trim() || !aNom.trim()) { toast("Code et libellé obligatoires."); return; }
+    setPendingRef(true);
+    const res = await creerAbsenceType({ code: aCode, name: aNom, paid: aPaye, entitlementDays: aDroit ? Number(aDroit) : null });
+    setPendingRef(false);
+    if (res.ok) { toast("Type d’absence ajouté ✓"); setModalAbsence(false); setACode(""); setANom(""); setAPaye(true); setADroit(""); refresh(); }
+    else toast(`Erreur : ${res.error}`);
   }
 
   const ROLES: Record<string, [string, string]> = {
@@ -140,7 +165,7 @@ export default function Parametrage() {
       {tab === "pt5" && (
         <div className="grid2">
           <div className="panel">
-            <div className="hd"><h3>Types de primes &amp; indemnités</h3></div>
+            <div className="hd"><h3>Types de primes &amp; indemnités</h3><span className="sp" /><button className="btn btn-o btn-sm" onClick={() => setModalPrime(true)}>+ Ajouter</button></div>
             <table>
               <tbody>
                 <tr><th>Libellé</th><th>RTS</th><th>CNSS</th></tr>
@@ -155,7 +180,7 @@ export default function Parametrage() {
             </table>
           </div>
           <div className="panel">
-            <div className="hd"><h3>Types d’absences</h3></div>
+            <div className="hd"><h3>Types d’absences</h3><span className="sp" /><button className="btn btn-o btn-sm" onClick={() => setModalAbsence(true)}>+ Ajouter</button></div>
             <table>
               <tbody>
                 <tr><th>Type</th><th>Droit</th><th>Rémunéré</th></tr>
@@ -191,6 +216,58 @@ export default function Parametrage() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {modalPrime && (
+        <div className="ovl" onClick={(e) => e.target === e.currentTarget && setModalPrime(false)}>
+          <div className="mdl sm">
+            <div className="mh">
+              <div><h3>Nouveau type de prime</h3><p>Précisez si elle est imposable RTS et soumise à CNSS (CLAUDE.md §6.4).</p></div>
+              <button className="x" onClick={() => setModalPrime(false)}>✕</button>
+            </div>
+            <div className="mb">
+              <div className="fgrid">
+                <div className="fld"><label>Code</label><input className="mono" value={pCode} onChange={(e) => setPCode(e.target.value.toUpperCase())} placeholder="EX. PRIME_PERF" /></div>
+                <div className="fld"><label>Libellé</label><input value={pNom} onChange={(e) => setPNom(e.target.value)} placeholder="Prime de performance" /></div>
+                <div className="fld"><label>Imposable RTS ?</label>
+                  <select value={pRts ? "1" : "0"} onChange={(e) => setPRts(e.target.value === "1")}><option value="1">Oui</option><option value="0">Non — exonérée</option></select>
+                </div>
+                <div className="fld"><label>Soumise CNSS ?</label>
+                  <select value={pCnss ? "1" : "0"} onChange={(e) => setPCnss(e.target.value === "1")}><option value="1">Oui</option><option value="0">Non — exonérée</option></select>
+                </div>
+              </div>
+            </div>
+            <div className="mf">
+              <button className="btn btn-g" onClick={() => setModalPrime(false)}>Annuler</button>
+              <button className="btn btn-p" disabled={pendingRef} onClick={ajouterPrime}>{pendingRef ? "Ajout…" : "Ajouter"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalAbsence && (
+        <div className="ovl" onClick={(e) => e.target === e.currentTarget && setModalAbsence(false)}>
+          <div className="mdl sm">
+            <div className="mh">
+              <div><h3>Nouveau type d’absence</h3><p>Le droit en jours est optionnel (ex. permission ponctuelle).</p></div>
+              <button className="x" onClick={() => setModalAbsence(false)}>✕</button>
+            </div>
+            <div className="mb">
+              <div className="fgrid">
+                <div className="fld"><label>Code</label><input className="mono" value={aCode} onChange={(e) => setACode(e.target.value.toUpperCase())} placeholder="EX. CSANG" /></div>
+                <div className="fld"><label>Libellé</label><input value={aNom} onChange={(e) => setANom(e.target.value)} placeholder="Congé pour don du sang" /></div>
+                <div className="fld"><label>Rémunéré ?</label>
+                  <select value={aPaye ? "1" : "0"} onChange={(e) => setAPaye(e.target.value === "1")}><option value="1">Oui</option><option value="0">Non — déduite</option></select>
+                </div>
+                <div className="fld"><label>Droit (jours, optionnel)</label><input className="mono" value={aDroit} onChange={(e) => setADroit(e.target.value.replace(/[^\d]/g, ""))} placeholder="ex. 3" /></div>
+              </div>
+            </div>
+            <div className="mf">
+              <button className="btn btn-g" onClick={() => setModalAbsence(false)}>Annuler</button>
+              <button className="btn btn-p" disabled={pendingRef} onClick={ajouterAbsence}>{pendingRef ? "Ajout…" : "Ajouter"}</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

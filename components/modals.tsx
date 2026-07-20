@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useModal, useToast } from "@/components/providers";
+import { mettreAJourMonProfil, mettreAJourMesCoordonnees, inviterUtilisateur } from "@/app/actions";
 
 /**
  * Identifiants de modales globales. Les anciennes modales STATIQUES
@@ -53,32 +54,8 @@ export function Modals() {
 
   return (
     <>
-      {/* ===== Inviter un utilisateur (rendue réelle au Lot 4) ===== */}
-      <Ovl id="mInviter">
-        <div className="mdl">
-          <div className="mh">
-            <div>
-              <h3>Inviter un utilisateur</h3>
-              <p>Il recevra un email pour créer son mot de passe.</p>
-            </div>
-            <button className="x" onClick={cm}>✕</button>
-          </div>
-          <div className="mb">
-            <div className="fgrid">
-              <div className="fld w"><label>Adresse email</label><input type="email" placeholder="prenom.nom@entreprise.gn" /></div>
-              <div className="fld"><label>Rôle</label><select><option>Employé (portail)</option><option>Manager</option><option>RH</option><option>Comptable</option><option>Direction (lecture)</option><option>Administrateur</option></select></div>
-            </div>
-            <div className="alert vt">
-              <span className="ic">💡</span>
-              <div><b>Rappel des droits :</b> un Manager ne voit que son équipe et jamais les salaires ; un Employé ne voit que ses propres bulletins et congés.</div>
-            </div>
-          </div>
-          <div className="mf">
-            <button className="btn btn-g" onClick={cm}>Annuler</button>
-            <button className="btn btn-p" onClick={() => { cm(); toast("Invitation réelle : voir Paramétrage → Utilisateurs"); }}>Envoyer l’invitation</button>
-          </div>
-        </div>
-      </Ovl>
+      {/* ===== Inviter un utilisateur — écriture réelle (compte Auth + profil) ===== */}
+      <ModaleInviter />
 
       {/* ===== Changement de plan (Stripe = étape V) ===== */}
       <Ovl id="mPlan">
@@ -99,60 +76,11 @@ export function Modals() {
         </div>
       </Ovl>
 
-      {/* ===== Mon profil (utilisateur app) ===== */}
-      <Ovl id="mProfil">
-        <div className="mdl">
-          <div className="mh">
-            <div>
-              <h3>👤 Mon profil</h3>
-              <p>Vos informations de compte. Les données RH (salaire, contrat) se gèrent sur votre fiche employé.</p>
-            </div>
-            <button className="x" onClick={cm}>✕</button>
-          </div>
-          <div className="mb">
-            <div className="fgrid">
-              <div className="fld"><label>Prénom</label><input defaultValue="" placeholder="Prénom" /></div>
-              <div className="fld"><label>Nom</label><input defaultValue="" placeholder="Nom" /></div>
-              <div className="fld"><label>Téléphone</label><input className="mono" /></div>
-              <div className="fld"><label>Langue</label><select><option>Français</option></select></div>
-            </div>
-          </div>
-          <div className="mf">
-            <button className="btn btn-g" onClick={cm}>Annuler</button>
-            <button className="btn btn-p" onClick={() => { cm(); toast("Profil mis à jour ✓"); }}>Enregistrer</button>
-          </div>
-        </div>
-      </Ovl>
+      {/* ===== Mon profil (utilisateur app) — écriture réelle sur profiles ===== */}
+      <ModaleMonProfil />
 
-      {/* ===== Mon profil (employé portail) ===== */}
-      <Ovl id="mProfilEmp">
-        <div className="mdl">
-          <div className="mh">
-            <div>
-              <h3>👤 Mon profil</h3>
-              <p>Vous pouvez mettre à jour vos coordonnées. Les autres informations sont gérées par le service RH.</p>
-            </div>
-            <button className="x" onClick={cm}>✕</button>
-          </div>
-          <div className="mb">
-            <div className="fgrid">
-              <div className="fld"><label>Téléphone</label><input className="mono" /></div>
-              <div className="fld"><label>Email personnel</label><input type="email" /></div>
-              <div className="fld w"><label>Adresse</label><input /></div>
-              <div className="fld"><label>Contact d’urgence</label><input /></div>
-              <div className="fld"><label>Téléphone d’urgence</label><input className="mono" /></div>
-            </div>
-            <div className="alert vt">
-              <span className="ic">✓</span>
-              <div>Toute modification est <b>notifiée au service RH</b> et tracée dans votre dossier.</div>
-            </div>
-          </div>
-          <div className="mf">
-            <button className="btn btn-g" onClick={cm}>Annuler</button>
-            <button className="btn btn-p" onClick={() => { cm(); toast("Coordonnées mises à jour ✓ — le service RH est notifié"); }}>Enregistrer</button>
-          </div>
-        </div>
-      </Ovl>
+      {/* ===== Mon profil (employé portail) — écriture réelle via update_my_contact ===== */}
+      <ModaleMesCoordonnees />
 
       {/* ===== Modifier le mot de passe ===== */}
       <ModaleMotDePasse />
@@ -235,6 +163,197 @@ function ModaleMotDePasse() {
           <button className="btn btn-p" disabled={pending || !nouveau} onClick={changer}>
             {pending ? "Modification…" : "Modifier le mot de passe"}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Mon profil (utilisateur app) — RÉEL : lit/écrit profiles (RLS id = auth.uid()). */
+function ModaleMonProfil() {
+  const { open, cm } = useModal();
+  const toast = useToast();
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (open !== "mProfil") return;
+    let vivant = true;
+    import("@/lib/supabase/client").then(async ({ createClient }) => {
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user || !vivant) return;
+      const { data } = await sb.from("profiles").select("full_name, phone").eq("id", user.id).single();
+      if (data && vivant) { setFullName(data.full_name ?? ""); setPhone(data.phone ?? ""); }
+    });
+    return () => { vivant = false; };
+  }, [open]);
+
+  if (open !== "mProfil") return null;
+
+  async function enregistrer() {
+    setPending(true);
+    const res = await mettreAJourMonProfil({ fullName, phone });
+    setPending(false);
+    if (res.ok) { cm(); toast("Profil mis à jour ✓"); }
+    else toast(`Erreur : ${res.error}`);
+  }
+
+  return (
+    <div className="ovl" onClick={(e) => e.target === e.currentTarget && cm()}>
+      <div className="mdl">
+        <div className="mh">
+          <div>
+            <h3>👤 Mon profil</h3>
+            <p>Vos informations de compte. Les données RH (salaire, contrat) se gèrent sur votre fiche employé.</p>
+          </div>
+          <button className="x" onClick={cm}>✕</button>
+        </div>
+        <div className="mb">
+          <div className="fgrid">
+            <div className="fld w"><label>Nom complet</label><input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Prénom Nom" /></div>
+            <div className="fld"><label>Téléphone</label><input className="mono" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+          </div>
+        </div>
+        <div className="mf">
+          <button className="btn btn-g" onClick={cm}>Annuler</button>
+          <button className="btn btn-p" disabled={pending || !fullName.trim()} onClick={enregistrer}>{pending ? "Enregistrement…" : "Enregistrer"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Mes coordonnées (employé portail) — RÉEL : fonction update_my_contact (RLS via employee_id). */
+function ModaleMesCoordonnees() {
+  const { open, cm } = useModal();
+  const toast = useToast();
+  const [phone, setPhone] = useState("");
+  const [adresse, setAdresse] = useState("");
+  const [urgNom, setUrgNom] = useState("");
+  const [urgTel, setUrgTel] = useState("");
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (open !== "mProfilEmp") return;
+    let vivant = true;
+    import("@/lib/supabase/client").then(async ({ createClient }) => {
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user || !vivant) return;
+      const { data: profil } = await sb.from("profiles").select("employee_id").eq("id", user.id).single();
+      if (!profil?.employee_id) return;
+      const { data } = await sb.from("employees")
+        .select("phone, address, emergency_contact_name, emergency_contact_phone")
+        .eq("id", profil.employee_id).single();
+      if (data && vivant) {
+        setPhone(data.phone ?? ""); setAdresse(data.address ?? "");
+        setUrgNom(data.emergency_contact_name ?? ""); setUrgTel(data.emergency_contact_phone ?? "");
+      }
+    });
+    return () => { vivant = false; };
+  }, [open]);
+
+  if (open !== "mProfilEmp") return null;
+
+  async function enregistrer() {
+    setPending(true);
+    const res = await mettreAJourMesCoordonnees({ phone, address: adresse, emergencyName: urgNom, emergencyPhone: urgTel });
+    setPending(false);
+    if (res.ok) { cm(); toast("Coordonnées mises à jour ✓"); }
+    else toast(`Erreur : ${res.error}`);
+  }
+
+  return (
+    <div className="ovl" onClick={(e) => e.target === e.currentTarget && cm()}>
+      <div className="mdl">
+        <div className="mh">
+          <div>
+            <h3>👤 Mon profil</h3>
+            <p>Vous pouvez mettre à jour vos coordonnées. Les autres informations sont gérées par le service RH.</p>
+          </div>
+          <button className="x" onClick={cm}>✕</button>
+        </div>
+        <div className="mb">
+          <div className="fgrid">
+            <div className="fld"><label>Téléphone</label><input className="mono" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+            <div className="fld w"><label>Adresse</label><input value={adresse} onChange={(e) => setAdresse(e.target.value)} /></div>
+            <div className="fld"><label>Contact d’urgence</label><input value={urgNom} onChange={(e) => setUrgNom(e.target.value)} /></div>
+            <div className="fld"><label>Téléphone d’urgence</label><input className="mono" value={urgTel} onChange={(e) => setUrgTel(e.target.value)} /></div>
+          </div>
+          <div className="alert vt">
+            <span className="ic">✓</span>
+            <div>Ces coordonnées sont modifiables par vous ; les autres informations (contrat, salaire) sont gérées par le service RH.</div>
+          </div>
+        </div>
+        <div className="mf">
+          <button className="btn btn-g" onClick={cm}>Annuler</button>
+          <button className="btn btn-p" disabled={pending} onClick={enregistrer}>{pending ? "Enregistrement…" : "Enregistrer"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Inviter un utilisateur — RÉEL : Server Action inviterUtilisateur (service_role côté serveur). */
+function ModaleInviter() {
+  const { open, cm } = useModal();
+  const toast = useToast();
+  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState("employe");
+  const [pending, setPending] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  if (open !== "mInviter") return null;
+
+  async function envoyer() {
+    if (!email.trim() || !fullName.trim()) { setErreur("Nom et email obligatoires."); return; }
+    setPending(true);
+    setErreur(null);
+    const res = await inviterUtilisateur({ email: email.trim(), fullName: fullName.trim(), role });
+    setPending(false);
+    if (res.ok) {
+      setEmail(""); setFullName(""); setRole("employe");
+      cm();
+      toast(`Invitation envoyée à ${email} ✓`);
+    } else setErreur(res.error);
+  }
+
+  return (
+    <div className="ovl" onClick={(e) => e.target === e.currentTarget && cm()}>
+      <div className="mdl">
+        <div className="mh">
+          <div>
+            <h3>Inviter un utilisateur</h3>
+            <p>Il recevra un email pour créer son mot de passe.</p>
+          </div>
+          <button className="x" onClick={cm}>✕</button>
+        </div>
+        <div className="mb">
+          <div className="fgrid">
+            <div className="fld w"><label>Nom complet</label><input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Prénom Nom" /></div>
+            <div className="fld w"><label>Adresse email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="prenom.nom@entreprise.gn" /></div>
+            <div className="fld"><label>Rôle</label>
+              <select value={role} onChange={(e) => setRole(e.target.value)}>
+                <option value="employe">Employé (portail)</option>
+                <option value="manager">Manager</option>
+                <option value="rh">RH</option>
+                <option value="comptable">Comptable</option>
+                <option value="dg">Direction (lecture)</option>
+                <option value="admin">Administrateur</option>
+              </select>
+            </div>
+          </div>
+          <div className="alert vt">
+            <span className="ic">💡</span>
+            <div><b>Rappel des droits :</b> un Manager ne voit que son équipe et jamais les salaires ; un Employé ne voit que ses propres bulletins et congés.</div>
+          </div>
+          {erreur && <div className="alert rg"><span className="ic">⚠</span><div>{erreur}</div></div>}
+        </div>
+        <div className="mf">
+          <button className="btn btn-g" onClick={cm}>Annuler</button>
+          <button className="btn btn-p" disabled={pending} onClick={envoyer}>{pending ? "Envoi…" : "Envoyer l’invitation"}</button>
         </div>
       </div>
     </div>
