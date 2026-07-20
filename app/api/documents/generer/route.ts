@@ -12,10 +12,12 @@ import { calculerSoldeToutCompte, BAREME_STC_DEFAUT, type MotifDepart } from "@/
 import {
   xlsxDeclarationCnss, xlsxEtatRts, xlsxEtatSalaires, xlsxJournalPaie,
   xlsxRegistrePersonnel, xlsxSuiviConges, xlsxFicheIndividuelle, xlsxBilanSocial,
+  xlsxEtatEffectifs, xlsxSyntheseMasseSalariale, xlsxEtatContratsEcheance,
 } from "@/lib/excel/documents";
 
 const TYPES_XLSX = ["declaration_cnss", "etat_rts", "etat_salaires", "journal_paie",
-  "registre_personnel", "suivi_conges", "fiche_individuelle", "bilan_social"];
+  "registre_personnel", "suivi_conges", "fiche_individuelle", "bilan_social",
+  "effectifs_departement", "synthese_masse_salariale", "contrats_echeance"];
 
 function reponseFichier(contenu: Uint8Array | Buffer, nom: string, xlsx: boolean) {
   return new NextResponse(Buffer.from(contenu), {
@@ -287,7 +289,9 @@ export async function GET(req: Request) {
     const lignes = [...parDep.entries()]
       .map(([departement, v]) => ({ departement, ...v }))
       .sort((a, b) => a.departement.localeCompare(b.departement));
-    contenu = await etatEffectifs(entreprise, lignes);
+    contenu = xlsx
+      ? await xlsxEtatEffectifs(entreprise, lignes, auteur)
+      : await etatEffectifs(entreprise, lignes);
   }
 
   // ----- Synthèse masse salariale annuelle (PDF) -----
@@ -310,7 +314,9 @@ export async function GET(req: Request) {
         net: l.reduce((s, x) => s + x.net_pay, 0),
       };
     });
-    contenu = await syntheseMasseSalariale(entreprise, annee, periodes);
+    contenu = xlsx
+      ? await xlsxSyntheseMasseSalariale(entreprise, annee, periodes, auteur)
+      : await syntheseMasseSalariale(entreprise, annee, periodes);
   }
 
   // ----- État des contrats à échéance (PDF, fenêtre J-30) -----
@@ -332,7 +338,9 @@ export async function GET(req: Request) {
         lignes.push({ matricule: e.matricule, nom, type: "Pièce d'identité à renouveler", echeance: e.id_doc_expiry, jours: jours(e.id_doc_expiry) });
     }
     lignes.sort((a, b) => a.jours - b.jours);
-    contenu = await etatContratsEcheance(entreprise, lignes);
+    contenu = xlsx
+      ? await xlsxEtatContratsEcheance(entreprise, lignes, auteur)
+      : await etatContratsEcheance(entreprise, lignes);
   }
 
   else {

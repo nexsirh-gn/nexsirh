@@ -418,3 +418,84 @@ export async function xlsxFicheIndividuelle(
   pied(ws, l + 1, auteur);
   return buffer(wb);
 }
+
+// ============================================================
+// ÉTAT DES EFFECTIFS PAR DÉPARTEMENT (bandeau vert)
+// ============================================================
+export async function xlsxEtatEffectifs(
+  e: Entreprise,
+  lignes: { departement: string; actifs: number; essai: number; cdd: number }[],
+  auteur: string
+) {
+  const { wb, ws } = nouveauClasseur("Effectifs par département");
+  ws.columns = [{ width: 6 }, { width: 34 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 12 }];
+  bandeau(ws, 6, `ÉTAT DES EFFECTIFS - ${e.name.toUpperCase()}`, `Ventilation par département — au ${new Date().toLocaleDateString("fr-FR")}`, COULEURS.vert);
+  let l = blocEmployeur(ws, 4, e);
+  l = enteteTableau(ws, l, ["N°", "Département", "Actifs", "En essai", "dont CDD", "Total"], COULEURS.vert);
+  l = lignesTableau(ws, l, lignes.map((x, i) => [i + 1, x.departement, x.actifs, x.essai, x.cdd, x.actifs + x.essai]), [3, 4, 5, 6]);
+  const tot = (f: (x: (typeof lignes)[number]) => number) => lignes.reduce((s, x) => s + f(x), 0);
+  l = ligneTotaux(ws, l, ["", "TOTAL ENTREPRISE", tot((x) => x.actifs), tot((x) => x.essai), tot((x) => x.cdd), tot((x) => x.actifs + x.essai)], [3, 4, 5, 6]);
+  l++;
+  ws.getCell(l, 1).value = "Effectif en poste : salariés actifs et en période d'essai (hors sortis).";
+  ws.getCell(l, 1).font = { italic: true, size: 9 };
+  pied(ws, l + 1, auteur);
+  return buffer(wb);
+}
+
+// ============================================================
+// SYNTHÈSE MASSE SALARIALE ANNUELLE (bandeau or)
+// ============================================================
+export async function xlsxSyntheseMasseSalariale(
+  e: Entreprise, annee: number,
+  periodes: { periode: string; effectif: number; brut: number; chargesPat: number; net: number }[],
+  auteur: string
+) {
+  const { wb, ws } = nouveauClasseur("Masse salariale");
+  ws.columns = [{ width: 6 }, { width: 22 }, { width: 14 }, { width: 18 }, { width: 20 }, { width: 18 }];
+  bandeau(ws, 6, `SYNTHÈSE MASSE SALARIALE - ${e.name.toUpperCase()}`, `Année ${annee}`, COULEURS.or);
+  let l = blocEmployeur(ws, 4, e);
+  l = enteteTableau(ws, l, ["N°", "Période", "Effectif payé", "Masse brute (GNF)", "Charges patronales (GNF)", "Net versé (GNF)"], COULEURS.or);
+  l = lignesTableau(ws, l, periodes.map((x, i) => [i + 1, x.periode, x.effectif, x.brut, x.chargesPat, x.net]), [4, 5, 6]);
+  const tot = (f: (x: (typeof periodes)[number]) => number) => periodes.reduce((s, x) => s + f(x), 0);
+  const totBrut = tot((x) => x.brut), totPat = tot((x) => x.chargesPat);
+  l = ligneTotaux(ws, l, [`TOTAL ${annee}`, null, null, totBrut, totPat, tot((x) => x.net)], [4, 5, 6]);
+  l++;
+  ws.getCell(l, 1).value = "COÛT EMPLOYEUR TOTAL :";
+  ws.getCell(l, 1).font = { bold: true };
+  const c = ws.getCell(l, 5);
+  c.value = totBrut + totPat;
+  c.numFmt = "#,##0";
+  c.font = { bold: true, size: 12, color: { argb: COULEURS.or } };
+  ws.getCell(l + 1, 1).value = "Coût employeur = masse brute + CNSS patronale + Versement Forfaitaire + CFPA.";
+  ws.getCell(l + 1, 1).font = { italic: true, size: 8 };
+  pied(ws, l + 2, auteur);
+  return buffer(wb);
+}
+
+// ============================================================
+// ÉTAT DES CONTRATS À ÉCHÉANCE (bandeau rouge sombre)
+// ============================================================
+export async function xlsxEtatContratsEcheance(
+  e: Entreprise,
+  lignes: { matricule: string; nom: string; type: string; echeance: string; jours: number }[],
+  auteur: string
+) {
+  const { wb, ws } = nouveauClasseur("Contrats à échéance");
+  ws.columns = [{ width: 6 }, { width: 12 }, { width: 28 }, { width: 30 }, { width: 14 }, { width: 12 }];
+  bandeau(ws, 6, `ÉTAT DES CONTRATS À ÉCHÉANCE - ${e.name.toUpperCase()}`, `Alertes à J-30 — au ${new Date().toLocaleDateString("fr-FR")}`, COULEURS.rouge);
+  let l = blocEmployeur(ws, 4, e);
+  l = enteteTableau(ws, l, ["N°", "Matricule", "Salarié", "Échéance concernée", "Date", "Dans (j)"], COULEURS.rouge);
+  if (lignes.length === 0) {
+    ws.getCell(l, 1).value = "Aucune échéance de contrat, de période d'essai ou de pièce d'identité à ce jour.";
+    ws.getCell(l, 1).font = { italic: true };
+    pied(ws, l + 2, auteur);
+    return buffer(wb);
+  }
+  l = lignesTableau(ws, l, lignes.map((x, i) => [i + 1, x.matricule, x.nom, x.type, dateFr(x.echeance), x.jours < 0 ? "dépassé" : x.jours]), []);
+  ws.getCell(l, 1).value = `Nombre d'échéances : ${lignes.length}`;
+  ws.getCell(l, 1).font = { bold: true };
+  ws.getCell(l + 1, 1).value = "Alertes générées à J-30 : fins de CDD, fins de période d'essai, pièces d'identité expirant.";
+  ws.getCell(l + 1, 1).font = { italic: true, size: 8 };
+  pied(ws, l + 2, auteur);
+  return buffer(wb);
+}

@@ -106,9 +106,12 @@ export default function Rapports() {
             ] as [string, string][]).map(([t, type]) => (
               <tr key={type}>
                 <td>📄 {t}</td>
-                <td style={{ textAlign: "right" }}>
+                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                   <a className="btn btn-o btn-sm" href={`/api/documents/generer?type=${type}`} target="_blank" rel="noopener"
-                    onClick={() => toast(`Génération : ${t}…`)}>Générer</a>
+                    onClick={() => toast(`Génération PDF : ${t}…`)}>PDF</a>
+                  {" "}
+                  <a className="btn btn-o btn-sm" href={`/api/documents/generer?type=${type}&format=xlsx`} target="_blank" rel="noopener"
+                    onClick={() => toast(`Génération Excel : ${t}…`)}>⇩ Excel</a>
                 </td>
               </tr>
             ))}

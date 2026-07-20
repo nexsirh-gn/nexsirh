@@ -40,13 +40,25 @@ const etats = [
 ];
 
 for (const [label, type] of etats) {
+  // PDF
   const res = await fetch(`${APP}/api/documents/generer?type=${type}`, { headers: { Cookie: rh } });
   const ct = res.headers.get("content-type") ?? "";
-  if (res.status !== 200) { ok(label, false, `HTTP ${res.status}`); continue; }
-  const buf = Buffer.from(await res.arrayBuffer());
-  let pages = 0;
-  try { pages = (await PDFDocument.load(buf)).getPageCount(); } catch { /* pas un PDF */ }
-  ok(label, ct.includes("pdf") && pages >= 1 && buf.length > 1500, `${pages} page(s), ${buf.length} o`);
+  if (res.status !== 200) { ok(`${label} (PDF)`, false, `HTTP ${res.status}`); }
+  else {
+    const buf = Buffer.from(await res.arrayBuffer());
+    let pages = 0;
+    try { pages = (await PDFDocument.load(buf)).getPageCount(); } catch { /* pas un PDF */ }
+    ok(`${label} (PDF)`, ct.includes("pdf") && pages >= 1 && buf.length > 1500, `${pages} page(s), ${buf.length} o`);
+  }
+  // Excel
+  const resX = await fetch(`${APP}/api/documents/generer?type=${type}&format=xlsx`, { headers: { Cookie: rh } });
+  const ctX = resX.headers.get("content-type") ?? "";
+  if (resX.status !== 200) { ok(`${label} (Excel)`, false, `HTTP ${resX.status}`); }
+  else {
+    const bufX = Buffer.from(await resX.arrayBuffer());
+    // signature ZIP « PK » = classeur xlsx valide
+    ok(`${label} (Excel)`, ctX.includes("spreadsheetml") && bufX[0] === 0x50 && bufX[1] === 0x4b && bufX.length > 1500, `${bufX.length} o`);
+  }
 }
 
 // Contrôle de rôle : un employé (manager) ne doit pas générer ces états d'entreprise
