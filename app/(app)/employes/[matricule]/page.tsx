@@ -312,10 +312,24 @@ export default function FicheEmploye() {
                     {["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf(ve)"].map((o) => <option key={o}>{o}</option>)}
                   </select>
                 </div>
+                <div className="fld">
+                  <label>Pièce d’identité</label>
+                  <select
+                    value={editForm.id_doc_type ?? emp.id_doc_type ?? "CNI"}
+                    onChange={(e) => setEditForm({ ...editForm, id_doc_type: e.target.value })}
+                  >
+                    {["CNI", "Passeport", "Carte de séjour", "Permis de conduire"].map((o) => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
                 {/* Champs texte libres */}
                 {([
                   ["last_name", "Nom", emp.last_name],
                   ["first_name", "Prénom", emp.first_name],
+                  ["nationality", "Nationalité", emp.nationality],
+                  ["birth_place", "Lieu de naissance", emp.birth_place],
+                  ["children_count", "Nombre d’enfants", emp.children_count != null ? String(emp.children_count) : ""],
+                  ["id_doc_number", "N° pièce d’identité", emp.id_doc_number],
+                  ["id_doc_expiry", "Expiration pièce (AAAA-MM-JJ)", emp.id_doc_expiry],
                   ["phone", "Téléphone", emp.phone],
                   ["email", "Email", emp.email],
                   ["cnss_number", "N° CNSS", emp.cnss_number],
@@ -328,6 +342,8 @@ export default function FicheEmploye() {
                   <div key={champ} className={`fld ${champ === "address" ? "w" : ""}`}>
                     <label>{libelle}</label>
                     <input
+                      type={champ === "children_count" ? "number" : champ === "id_doc_expiry" ? "date" : "text"}
+                      min={champ === "children_count" ? 0 : undefined}
                       value={editForm[champ] ?? valeur ?? ""}
                       onChange={(e) => setEditForm({ ...editForm, [champ]: e.target.value })}
                     />
