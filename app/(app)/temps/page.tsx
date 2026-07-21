@@ -3,6 +3,7 @@
 import { useToast } from "@/components/providers";
 import { useQuery, formatGNF, MOIS } from "@/lib/hooks";
 import { validerFeuilleTemps } from "@/app/actions";
+import { DataTable, type Colonne } from "@/components/data-table";
 
 export default function Temps() {
   const toast = useToast();
@@ -26,10 +27,23 @@ export default function Temps() {
     else toast(`Erreur : ${res.error}`);
   }
 
-  const nomDe = (f: (typeof feuilles)[number]) => {
+  type Feuille = (typeof feuilles)[number];
+  const nomDe = (f: Feuille) => {
     const e = f.employees as unknown as { first_name: string; last_name: string } | null;
     return e ? `${e.last_name} ${e.first_name}` : "—";
   };
+
+  const colonnes: Colonne<Feuille>[] = [
+    { id: "salarie", entete: "Salarié", triPar: (f) => nomDe(f), cell: (f) => <b>{nomDe(f)}</b> },
+    { id: "periode", entete: "Période", triPar: (f) => f.period_year * 100 + f.period_month, cell: (f) => `${MOIS[f.period_month]} ${f.period_year}` },
+    { id: "total_hours", entete: "H. travaillées", num: true, triPar: (f) => f.total_hours, classeCell: "gnf", cell: (f) => f.total_hours.toLocaleString("fr-FR") },
+    { id: "ot25", entete: "HS +25 %", num: true, triPar: (f) => f.overtime_25, classeCell: "gnf", cell: (f) => f.overtime_25 || "—" },
+    { id: "ot50", entete: "HS +50 %", num: true, triPar: (f) => f.overtime_50, classeCell: "gnf", cell: (f) => f.overtime_50 || "—" },
+    { id: "ot100", entete: "HS +100 %", num: true, triPar: (f) => f.overtime_100, classeCell: "gnf", cell: (f) => f.overtime_100 || "—" },
+    { id: "montant", entete: "Montant HS (GNF)", num: true, triPar: (f) => f.overtime_amount, classeCell: "gnf", cell: (f) => f.overtime_amount ? formatGNF(f.overtime_amount) : "—" },
+    { id: "statut", entete: "Statut", triPar: (f) => f.status, cell: (f) => f.status === "a_valider" ? <span className="bg bg-o">À valider</span> : <span className="bg bg-v">Validé</span> },
+    { id: "actions", entete: "", classeCell: "nowrap", cell: (f) => f.status === "a_valider" ? <button className="btn btn-o btn-sm" onClick={() => valider(f.id)}>✓ Valider</button> : null },
+  ];
 
   return (
     <div>
@@ -38,31 +52,16 @@ export default function Temps() {
         <span className="sp" />
         <span className="bg bg-o">{aValider.length} à valider</span>
       </div>
-
-      <div className="panel">
-        <div className="hd"><h3>Récapitulatif mensuel — heures &amp; majorations</h3></div>
-        <table>
-          <tbody>
-            <tr><th>Salarié</th><th>Période</th><th className="num">H. travaillées</th><th className="num">HS +25 %</th><th className="num">HS +50 %</th><th className="num">HS +100 %</th><th className="num">Montant HS (GNF)</th><th>Statut</th><th></th></tr>
-            {feuilles.map((f) => (
-              <tr key={f.id}>
-                <td><b>{nomDe(f)}</b></td>
-                <td>{MOIS[f.period_month]} {f.period_year}</td>
-                <td className="gnf">{f.total_hours.toLocaleString("fr-FR")}</td>
-                <td className="gnf">{f.overtime_25 || "—"}</td>
-                <td className="gnf">{f.overtime_50 || "—"}</td>
-                <td className="gnf">{f.overtime_100 || "—"}</td>
-                <td className="gnf">{f.overtime_amount ? formatGNF(f.overtime_amount) : "—"}</td>
-                <td>{f.status === "a_valider" ? <span className="bg bg-o">À valider</span> : <span className="bg bg-v">Validé</span>}</td>
-                <td>{f.status === "a_valider" && (
-                  <button className="btn btn-o btn-sm" onClick={() => valider(f.id)}>✓ Valider</button>
-                )}</td>
-              </tr>
-            ))}
-            {feuilles.length === 0 && <tr><td colSpan={9} className="note">Aucune feuille de temps.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        titre="Récapitulatif mensuel — heures & majorations"
+        colonnes={colonnes}
+        lignes={feuilles}
+        cle={(f) => f.id}
+        recherchePar={(f) => `${nomDe(f)} ${MOIS[f.period_month]} ${f.period_year}`}
+        placeholderRecherche="Salarié, période…"
+        piedLibelle={(n) => `${n} feuille${n > 1 ? "s" : ""} de temps`}
+        messageVide="Aucune feuille de temps."
+      />
     </div>
   );
 }

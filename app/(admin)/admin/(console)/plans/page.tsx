@@ -2,6 +2,7 @@
 
 import { useModal, useToast } from "@/components/providers";
 import { useQuery, formatGNF } from "@/lib/hooks";
+import { DataTable, type Colonne } from "@/components/data-table";
 
 export default function Plans() {
   const { om } = useModal();
@@ -20,6 +21,15 @@ export default function Plans() {
   if (error) return <div className="alert rg"><span className="ic">⚠</span><div>Erreur : {error}</div></div>;
   const d = data!;
   const nbClients = (planId: string) => d.subs.filter((s) => s.plan_id === planId && s.status === "active").length;
+
+  type Promo = (typeof d.promos)[number];
+  const colonnesPromos: Colonne<Promo>[] = [
+    { id: "code", entete: "Code", triPar: (p) => p.code, classeCell: "mono", cell: (p) => <b>{p.code}</b> },
+    { id: "remise", entete: "Remise", triPar: (p) => p.discount_percent, cell: (p) => `-${p.discount_percent} % · ${p.duration_months ? `${p.duration_months} mois` : "illimité"}` },
+    { id: "utilisations", entete: "Utilisations", triPar: (p) => p.used_count, classeCell: "mono", cell: (p) => `${p.used_count} / ${p.max_uses ?? "∞"}` },
+    { id: "expire", entete: "Expire", triPar: (p) => p.expires_at ?? "", cell: (p) => p.expires_at ? new Date(p.expires_at).toLocaleDateString("fr-FR") : "—" },
+    { id: "statut", entete: "Statut", triPar: (p) => (p.active ? 1 : 0), cell: (p) => p.active ? <span className="bg bg-v">Actif</span> : <span className="bg bg-g">Inactif</span> },
+  ];
 
   return (
     <div>
@@ -44,23 +54,18 @@ export default function Plans() {
         ))}
       </div>
 
-      <div className="panel" style={{ marginTop: 20 }}>
-        <div className="hd"><h3>Codes promotionnels</h3><span className="sp" /><button className="btn btn-o btn-sm" onClick={() => toast("Formulaire de création de code promo ouvert")}>+ Créer un code</button></div>
-        <table>
-          <tbody>
-            <tr><th>Code</th><th>Remise</th><th>Utilisations</th><th>Expire</th><th>Statut</th></tr>
-            {d.promos.map((p) => (
-              <tr key={p.id}>
-                <td className="mono"><b>{p.code}</b></td>
-                <td>-{p.discount_percent} % · {p.duration_months ? `${p.duration_months} mois` : "illimité"}</td>
-                <td className="mono">{p.used_count} / {p.max_uses ?? "∞"}</td>
-                <td>{p.expires_at ? new Date(p.expires_at).toLocaleDateString("fr-FR") : "—"}</td>
-                <td>{p.active ? <span className="bg bg-v">Actif</span> : <span className="bg bg-g">Inactif</span>}</td>
-              </tr>
-            ))}
-            {d.promos.length === 0 && <tr><td colSpan={5} className="note">Aucun code promo.</td></tr>}
-          </tbody>
-        </table>
+      <div style={{ marginTop: 20 }}>
+        <DataTable
+          titre="Codes promotionnels"
+          colonnes={colonnesPromos}
+          lignes={d.promos}
+          cle={(p) => p.id}
+          recherchePar={(p) => p.code}
+          placeholderRecherche="Code…"
+          actions={<button className="btn btn-o btn-sm" onClick={() => toast("Formulaire de création de code promo ouvert")}>+ Créer un code</button>}
+          piedLibelle={(n) => `${n} code${n > 1 ? "s" : ""} promo`}
+          messageVide="Aucun code promo."
+        />
       </div>
     </div>
   );

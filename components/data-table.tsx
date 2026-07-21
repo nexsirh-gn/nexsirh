@@ -46,6 +46,10 @@ type Props<T> = {
   /** Libellé du pied ({n} = nombre de lignes filtrées). */
   piedLibelle?: (n: number) => ReactNode;
   messageVide?: string;
+  /** Titre affiché dans un `.hd` au-dessus du tableau. */
+  titre?: ReactNode;
+  /** Élément rendu à droite du pied (bouton d'action lié au tableau). */
+  piedAction?: ReactNode;
 };
 
 export function DataTable<T>({
@@ -54,6 +58,7 @@ export function DataTable<T>({
   filtres, filtrePredicat, filtreInitial,
   actions, triInitial, taillePage = 20,
   piedLibelle, messageVide = "Aucune ligne ne correspond.",
+  titre, piedAction,
 }: Props<T>) {
   const [recherche, setRecherche] = useState("");
   const [filtre, setFiltre] = useState(filtreInitial ?? filtres?.[0]?.id ?? "");
@@ -127,6 +132,7 @@ export function DataTable<T>({
         </div>
       )}
       <div className="panel">
+        {titre && <div className="hd"><h3>{titre}</h3></div>}
         <table>
           <tbody>
             <tr>
@@ -182,6 +188,7 @@ export function DataTable<T>({
               <button disabled={pageSure === nbPages} onClick={() => setPage(pageSure + 1)}>›</button>
             </div>
           )}
+          {piedAction}
         </div>
       </div>
     </div>

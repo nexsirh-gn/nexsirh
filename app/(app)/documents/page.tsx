@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useToast } from "@/components/providers";
 import { useQuery } from "@/lib/hooks";
+import { DataTable, type Colonne } from "@/components/data-table";
 
 const TYPES_DOC: [string, string, string][] = [
   ["attestation_travail", "📃 Attestation de travail", "Générée en un clic, pré-remplie avec les données du salarié."],
@@ -27,8 +28,6 @@ export default function Documents() {
   const [motif, setMotif] = useState("licenciement");
   const [preavis, setPreavis] = useState("effectue");
   const [runId, setRunId] = useState("");
-  const [page, setPage] = useState(1);
-  const PAR_PAGE = 10;
 
   const { data, loading, error, refresh } = useQuery(async (sb) => {
     const [docs, emps, runs] = await Promise.all([
@@ -48,8 +47,29 @@ export default function Documents() {
   const d = data!;
   const MOIS_COURT = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
   const runChoisi = runId || (d.runs[0]?.id ?? "");
-  const nbPages = Math.max(1, Math.ceil(d.docs.length / PAR_PAGE));
-  const pageDocs = d.docs.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
+  type Doc = (typeof d.docs)[number];
+  const nomDocSalarie = (doc: Doc) => {
+    const emp = doc.employees as unknown as { first_name: string; last_name: string } | null;
+    return emp ? `${emp.last_name} ${emp.first_name}` : "—";
+  };
+  const colonnesDocs: Colonne<Doc>[] = [
+    { id: "title", entete: "Document", triPar: (doc) => doc.title, cell: (doc) => `📄 ${doc.title}` },
+    { id: "salarie", entete: "Salarié", triPar: (doc) => nomDocSalarie(doc), cell: (doc) => nomDocSalarie(doc) },
+    { id: "period", entete: "Période", triPar: (doc) => doc.period ?? "", cell: (doc) => doc.period ?? "—" },
+    { id: "date", entete: "Date", triPar: (doc) => doc.created_at, cell: (doc) => new Date(doc.created_at).toLocaleDateString("fr-FR") },
+    {
+      id: "actions", entete: "", classeCell: "nowrap",
+      cell: (doc) => LIBELLES[doc.doc_type] && doc.doc_type !== "bulletin" && doc.doc_type !== "contrat" && doc.doc_type !== "facture" && doc.doc_type !== "autre"
+        ? <button className="btn btn-g btn-sm" onClick={() => {
+            const besoinRun = ["journal_paie", "declaration_cnss", "etat_rts", "etat_salaires"].includes(doc.doc_type);
+            const empDoc = (doc as unknown as { employee_id?: string }).employee_id;
+            if (besoinRun && runChoisi) telecharger(doc.doc_type, { run: runChoisi });
+            else if (empDoc) telecharger(doc.doc_type, { employee: empDoc });
+            else if (!besoinRun) telecharger(doc.doc_type);
+          }}>⇩ PDF</button>
+        : null,
+    },
+  ];
 
   function telecharger(type: string, params: Record<string, string> = {}, format: "pdf" | "xlsx" = "pdf") {
     const qs = new URLSearchParams({ type, ...params, ...(format === "xlsx" ? { format } : {}) }).toString();
@@ -116,49 +136,17 @@ export default function Documents() {
         ))}
       </div>
 
-      <div className="panel">
-        <div className="hd">
-          <h3>Documents générés récemment</h3>
-          <span className="sp" />
-          <span className="note">historique limité à 100 — les plus anciens sont supprimés automatiquement</span>
-        </div>
-        <table>
-          <tbody>
-            <tr><th>Document</th><th>Salarié</th><th>Période</th><th>Date</th><th></th></tr>
-            {pageDocs.map((doc) => {
-              const emp = doc.employees as unknown as { first_name: string; last_name: string } | null;
-              return (
-                <tr key={doc.id}>
-                  <td>📄 {doc.title}</td>
-                  <td>{emp ? `${emp.last_name} ${emp.first_name}` : "—"}</td>
-                  <td>{doc.period ?? "—"}</td>
-                  <td>{new Date(doc.created_at).toLocaleDateString("fr-FR")}</td>
-                  <td>{LIBELLES[doc.doc_type] && doc.doc_type !== "bulletin" && doc.doc_type !== "contrat" && doc.doc_type !== "facture" && doc.doc_type !== "autre" && (
-                    <button className="btn btn-g btn-sm" onClick={() => {
-                      const besoinRun = ["journal_paie", "declaration_cnss", "etat_rts", "etat_salaires"].includes(doc.doc_type);
-                      const empDoc = (doc as unknown as { employee_id?: string }).employee_id;
-                      if (besoinRun && runChoisi) telecharger(doc.doc_type, { run: runChoisi });
-                      else if (empDoc) telecharger(doc.doc_type, { employee: empDoc });
-                      else if (!besoinRun) telecharger(doc.doc_type);
-                    }}>⇩ PDF</button>
-                  )}</td>
-                </tr>
-              );
-            })}
-            {d.docs.length === 0 && <tr><td colSpan={5} className="note">Aucun document généré.</td></tr>}
-          </tbody>
-        </table>
-        <div className="pgn">
-          <span>{d.docs.length} document{d.docs.length > 1 ? "s" : ""} — page {page} sur {nbPages}</span>
-          <div className="pgs">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>‹</button>
-            {Array.from({ length: nbPages }, (_, i) => i + 1).map((n) => (
-              <button key={n} className={n === page ? "on" : ""} onClick={() => setPage(n)}>{n}</button>
-            ))}
-            <button onClick={() => setPage((p) => Math.min(nbPages, p + 1))} disabled={page === nbPages}>›</button>
-          </div>
-        </div>
-      </div>
+      <DataTable
+        titre="Documents générés récemment"
+        colonnes={colonnesDocs}
+        lignes={d.docs}
+        cle={(doc) => doc.id}
+        recherchePar={(doc) => `${doc.title} ${nomDocSalarie(doc)} ${doc.period ?? ""}`}
+        placeholderRecherche="Document, salarié, période…"
+        taillePage={10}
+        piedLibelle={(n) => `${n} document${n > 1 ? "s" : ""} — historique limité à 100`}
+        messageVide="Aucun document généré."
+      />
 
       {modal && (
         <div className="ovl" onClick={(e) => e.target === e.currentTarget && setModal(null)}>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useToast } from "@/components/providers";
 import { useQuery, formatGNF, initiales, MOIS } from "@/lib/hooks";
+import { DataTable, type Colonne } from "@/components/data-table";
 import { cloturerPaie, genererPaie, recalculerPaie, ajouterAjustement, supprimerPaie } from "@/app/actions";
 
 type Slip = {
@@ -80,6 +81,35 @@ export default function Paie() {
   const totCnss = slips.reduce((s, b) => s + b.cnss_employee + b.cnss_employer, 0);
   const libStatut = run.status === "brouillon" ? "Brouillon" : run.status === "cloture" ? "Clôturé" : "Validé";
 
+  const colonnesBulletins: Colonne<Slip>[] = [
+    {
+      id: "employee_name", entete: "Salarié", triPar: (b) => b.employee_name,
+      cell: (b) => <div className="emp"><span className="av g">{initiales(b.employee_name)}</span><div><b>{b.employee_name}</b><small>{b.position_title}</small></div></div>,
+    },
+    { id: "gross", entete: "Brut", num: true, triPar: (b) => b.gross, classeCell: "gnf", cell: (b) => formatGNF(b.gross) },
+    { id: "cnss_employee", entete: "CNSS sal.", num: true, triPar: (b) => b.cnss_employee, classeCell: "gnf", cell: (b) => formatGNF(b.cnss_employee) },
+    { id: "rts", entete: "RTS", num: true, triPar: (b) => b.rts, classeCell: "gnf", cell: (b) => formatGNF(b.rts) },
+    {
+      id: "retenues", entete: "Retenues", num: true, classeCell: "gnf",
+      triPar: (b) => b.loans_deduction + b.other_deductions,
+      cell: (b) => {
+        const r = b.loans_deduction + b.other_deductions;
+        return <span style={r > 0 ? { color: "var(--rouge)" } : undefined}>{r > 0 ? formatGNF(r) : "—"}</span>;
+      },
+    },
+    { id: "net_pay", entete: "Net à payer", num: true, triPar: (b) => b.net_pay, classeCell: "gnf", cell: (b) => <b>{formatGNF(b.net_pay)}</b> },
+    { id: "statut", entete: "Statut", cell: () => <span className={`bg ${run.status === "brouillon" ? "bg-o" : "bg-v"}`}>{libStatut}</span> },
+    {
+      id: "actions", entete: "", classeCell: "nowrap",
+      cell: (b) => <>
+        {run.status !== "cloture" && (
+          <><button className="btn btn-o btn-sm" onClick={() => setAjustement(b)}>± Ajustement</button>{" "}</>
+        )}
+        <a className="btn btn-g btn-sm" href={`/api/documents/bulletin/${b.id}`} onClick={() => toast("Téléchargement du bulletin PDF…")}>⇩ PDF</a>
+      </>,
+    },
+  ];
+
   async function confirmerCloture() {
     if (confirmation !== "CLOTURER") { toast("Tapez « CLOTURER » pour confirmer."); return; }
     setPending(true);
@@ -156,42 +186,19 @@ export default function Paie() {
         <div className="kpi gold"><div className="l">Net à payer</div><div className="v">{formatGNF(totNet)}</div><div className="d">virements de fin de mois</div></div>
       </div>
 
-      <div className="panel">
-        <div className="hd"><h3>Bulletins — {MOIS[run.period_month]} {run.period_year}</h3></div>
-        <table>
-          <tbody>
-            <tr><th>Salarié</th><th className="num">Brut</th><th className="num">CNSS sal.</th><th className="num">RTS</th><th className="num">Retenues</th><th className="num">Net à payer</th><th>Statut</th><th></th></tr>
-            {slips.map((b) => (
-              <tr key={b.id}>
-                <td><div className="emp"><span className="av g">{initiales(b.employee_name)}</span><div><b>{b.employee_name}</b><small>{b.position_title}</small></div></div></td>
-                <td className="gnf">{formatGNF(b.gross)}</td>
-                <td className="gnf">{formatGNF(b.cnss_employee)}</td>
-                <td className="gnf">{formatGNF(b.rts)}</td>
-                <td className="gnf" style={b.loans_deduction + b.other_deductions > 0 ? { color: "var(--rouge)" } : undefined}>
-                  {b.loans_deduction + b.other_deductions > 0 ? formatGNF(b.loans_deduction + b.other_deductions) : "—"}
-                </td>
-                <td className="gnf"><b>{formatGNF(b.net_pay)}</b></td>
-                <td><span className={`bg ${run.status === "brouillon" ? "bg-o" : "bg-v"}`}>{libStatut}</span></td>
-                <td style={{ whiteSpace: "nowrap" }}>
-                  {run.status !== "cloture" && (
-                    <><button className="btn btn-o btn-sm" onClick={() => setAjustement(b)}>± Ajustement</button>{" "}</>
-                  )}
-                  <a className="btn btn-g btn-sm" href={`/api/documents/bulletin/${b.id}`}
-                    onClick={() => toast("Téléchargement du bulletin PDF…")}>⇩ PDF</a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="pgn">
-          <span>{slips.length} bulletins — total net <b className="mono">{formatGNF(totNet)} GNF</b></span>
-          {run.status === "brouillon" && (
-            <button className="btn btn-g btn-sm" style={{ width: "auto", padding: "4px 10px" }} disabled={pending} onClick={supprimerBrouillon}>
-              🗑 Supprimer ce brouillon
-            </button>
-          )}
-        </div>
-      </div>
+      <DataTable
+        titre={`Bulletins — ${MOIS[run.period_month]} ${run.period_year}`}
+        colonnes={colonnesBulletins}
+        lignes={slips}
+        cle={(b) => b.id}
+        recherchePar={(b) => `${b.employee_name} ${b.matricule} ${b.position_title ?? ""}`}
+        placeholderRecherche="Nom, matricule, poste…"
+        piedLibelle={(n) => <>{n} bulletin{n > 1 ? "s" : ""} — total net <b className="mono">{formatGNF(totNet)} GNF</b></>}
+        piedAction={run.status === "brouillon"
+          ? <button className="btn btn-g btn-sm" style={{ width: "auto", padding: "4px 10px" }} disabled={pending} onClick={supprimerBrouillon}>🗑 Supprimer ce brouillon</button>
+          : undefined}
+        messageVide="Aucun bulletin pour cette période."
+      />
 
       <div className="grid2" style={{ marginTop: 18 }}>
         <div className="panel">

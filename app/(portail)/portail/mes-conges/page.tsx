@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useToast } from "@/components/providers";
 import { useQuery } from "@/lib/hooks";
 import { demanderConge } from "@/app/actions";
+import { DataTable, type Colonne } from "@/components/data-table";
 
 export default function MesConges() {
   const toast = useToast();
@@ -58,6 +59,14 @@ export default function MesConges() {
     annule: ["Annulée", "bg-g"],
   };
 
+  type Dem = (typeof d.demandes)[number];
+  const colonnes: Colonne<Dem>[] = [
+    { id: "type", entete: "Type", triPar: (dem) => dem.leave_type_code, cell: (dem) => dem.leave_type_code },
+    { id: "periode", entete: "Période", triPar: (dem) => dem.start_date, cell: (dem) => `${new Date(dem.start_date).toLocaleDateString("fr-FR")} – ${new Date(dem.end_date).toLocaleDateString("fr-FR")}` },
+    { id: "jours", entete: "Jours", num: true, triPar: (dem) => dem.working_days, classeCell: "gnf mono", cell: (dem) => dem.working_days },
+    { id: "statut", entete: "Statut", triPar: (dem) => dem.status, cell: (dem) => { const [lib, cls] = STATUTS[dem.status] ?? [dem.status, "bg-g"]; return <span className={`bg ${cls}`}>{lib}</span>; } },
+  ];
+
   return (
     <div>
       <div className="tools">
@@ -65,25 +74,13 @@ export default function MesConges() {
         <span className="sp" />
         <button className="btn btn-p" onClick={() => setOuvert(true)}>+ Demander un congé</button>
       </div>
-      <div className="panel">
-        <table>
-          <tbody>
-            <tr><th>Type</th><th>Période</th><th className="num">Jours</th><th>Statut</th></tr>
-            {d.demandes.map((dem) => {
-              const [lib, cls] = STATUTS[dem.status] ?? [dem.status, "bg-g"];
-              return (
-                <tr key={dem.id}>
-                  <td>{dem.leave_type_code}</td>
-                  <td>{new Date(dem.start_date).toLocaleDateString("fr-FR")} – {new Date(dem.end_date).toLocaleDateString("fr-FR")}</td>
-                  <td className="gnf mono">{dem.working_days}</td>
-                  <td><span className={`bg ${cls}`}>{lib}</span></td>
-                </tr>
-              );
-            })}
-            {d.demandes.length === 0 && <tr><td colSpan={4} className="note">Aucune demande.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        colonnes={colonnes}
+        lignes={d.demandes}
+        cle={(dem) => dem.id}
+        piedLibelle={(n) => `${n} demande${n > 1 ? "s" : ""}`}
+        messageVide="Aucune demande."
+      />
 
       {ouvert && (
         <div className="ovl" onClick={(e) => e.target === e.currentTarget && setOuvert(false)}>

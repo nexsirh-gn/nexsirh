@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useToast } from "@/components/providers";
 import { useQuery, initiales } from "@/lib/hooks";
 import { deciderConge, demanderConge } from "@/app/actions";
+import { DataTable, type Colonne } from "@/components/data-table";
 
 type CTab = "attente" | "approuve" | "refuse";
 type Demande = {
@@ -82,6 +83,28 @@ export default function Conges() {
     else toast(`Erreur : ${res.error}`);
   }
 
+  const colonnes: Colonne<Demande>[] = [
+    {
+      id: "salarie", entete: "Salarié", triPar: (d) => nomDe(d),
+      cell: (d) => <div className="emp"><span className="av g">{initiales(nomDe(d))}</span><div><b>{nomDe(d)}</b><small>{d.employees?.departments?.name ?? ""}</small></div></div>,
+    },
+    { id: "type", entete: "Type", triPar: (d) => d.leave_type_code, cell: (d) => `${d.leave_type_code}${d.comment ? ` (${d.comment})` : ""}` },
+    { id: "periode", entete: "Période", triPar: (d) => d.start_date, cell: (d) => periode(d) },
+    { id: "jours", entete: "Jours ouvr.", num: true, triPar: (d) => d.working_days, classeCell: "gnf mono", cell: (d) => d.working_days },
+    tab === "refuse"
+      ? { id: "motif", entete: "Motif", cell: (d) => d.refusal_reason }
+      : {
+          id: "circuit", entete: "Circuit", cell: (d) => <>
+            {d.status === "attente_manager" && <span className="bg bg-b">Manager…</span>}
+            {d.status === "attente_rh" && <><span className="bg bg-v">Manager ✓</span> <span className="bg bg-o">RH…</span></>}
+            {d.status === "approuve" && <span className="bg bg-v">Approuvée</span>}
+          </>,
+        },
+    ...(tab === "attente"
+      ? [{ id: "actions", entete: "", classeCell: "nowrap", cell: (d: Demande) => <button className="btn btn-p btn-sm" onClick={() => setEnTraitement(d)}>Traiter</button> } as Colonne<Demande>]
+      : []),
+  ];
+
   return (
     <div>
       <div className="tools">
@@ -91,40 +114,16 @@ export default function Conges() {
         <span className="sp" />
         <button className="btn btn-p" onClick={() => setModalDemande(true)}>+ Nouvelle demande</button>
       </div>
-
-      <div className="panel">
-        <div className="hd"><h3>{tab === "attente" ? "Demandes en attente" : tab === "approuve" ? "Demandes approuvées" : "Demandes refusées"}</h3></div>
-        <table>
-          <tbody>
-            <tr>
-              <th>Salarié</th><th>Type</th><th>Période</th><th className="num">Jours ouvr.</th>
-              {tab === "refuse" ? <th>Motif</th> : <th>Circuit</th>}
-              {tab === "attente" && <th></th>}
-            </tr>
-            {liste.map((d) => (
-              <tr key={d.id}>
-                <td><div className="emp"><span className="av g">{initiales(nomDe(d))}</span><div><b>{nomDe(d)}</b><small>{d.employees?.departments?.name ?? ""}</small></div></div></td>
-                <td>{d.leave_type_code}{d.comment ? ` (${d.comment})` : ""}</td>
-                <td>{periode(d)}</td>
-                <td className="gnf mono">{d.working_days}</td>
-                {tab === "refuse" ? (
-                  <td>{d.refusal_reason}</td>
-                ) : (
-                  <td>
-                    {d.status === "attente_manager" && <span className="bg bg-b">Manager…</span>}
-                    {d.status === "attente_rh" && <><span className="bg bg-v">Manager ✓</span> <span className="bg bg-o">RH…</span></>}
-                    {d.status === "approuve" && <span className="bg bg-v">Approuvée</span>}
-                  </td>
-                )}
-                {tab === "attente" && (
-                  <td><button className="btn btn-p btn-sm" onClick={() => setEnTraitement(d)}>Traiter</button></td>
-                )}
-              </tr>
-            ))}
-            {liste.length === 0 && <tr><td colSpan={6} className="note">Aucune demande.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        titre={tab === "attente" ? "Demandes en attente" : tab === "approuve" ? "Demandes approuvées" : "Demandes refusées"}
+        colonnes={colonnes}
+        lignes={liste}
+        cle={(d) => d.id}
+        recherchePar={(d) => `${nomDe(d)} ${d.leave_type_code} ${d.employees?.departments?.name ?? ""}`}
+        placeholderRecherche="Salarié, type, département…"
+        piedLibelle={(n) => `${n} demande${n > 1 ? "s" : ""}`}
+        messageVide="Aucune demande."
+      />
 
       {/* Modale nouvelle demande — écriture réelle */}
       {modalDemande && (

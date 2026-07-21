@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { useModal, useToast } from "@/components/providers";
 import { useQuery, formatGNF } from "@/lib/hooks";
+import { DataTable, type Colonne } from "@/components/data-table";
 
 export default function Entreprises() {
   const { om } = useModal();
   const toast = useToast();
-  const [filtre, setFiltre] = useState<"toutes" | "active" | "trial" | "past_due" | "suspended">("toutes");
 
   const { data, loading, error } = useQuery(async (sb) => {
     const [companies, subs, plans, emps, profils] = await Promise.all([
@@ -41,45 +40,56 @@ export default function Entreprises() {
     };
   });
   const n = (s: string) => lignes.filter((l) => l.subStatus === s).length;
-  const liste = filtre === "toutes" ? lignes : lignes.filter((l) => l.subStatus === filtre);
+  type Ligne = (typeof lignes)[number];
+
+  const colonnes: Colonne<Ligne>[] = [
+    {
+      id: "name", entete: "Entreprise", triPar: (c) => c.name,
+      cell: (c) => <><b>{c.name}</b><br /><small style={{ color: "var(--gris)" }}>{c.nif ? `NIF ${c.nif} · ` : ""}{c.sector ?? ""} · {c.city ?? ""}</small></>,
+    },
+    { id: "plan", entete: "Plan", triPar: (c) => c.planNom, cell: (c) => <span className={`bg ${c.planNom === "Essai" ? "bg-o" : "bg-v"}`}>{c.planNom}</span> },
+    { id: "salaries", entete: "Salariés", num: true, triPar: (c) => c.nbSalaries, classeCell: "gnf mono", cell: (c) => c.nbSalaries },
+    { id: "users", entete: "Utilisateurs", num: true, triPar: (c) => c.nbUsers, classeCell: "gnf mono", cell: (c) => c.nbUsers },
+    { id: "mrr", entete: "MRR (GNF)", num: true, triPar: (c) => c.mrr, classeCell: "gnf", cell: (c) => c.mrr ? formatGNF(c.mrr) : "—" },
+    {
+      id: "statut", entete: "Statut", triPar: (c) => c.subStatus,
+      cell: (c) => c.subStatus === "active" ? <span className="bg bg-v">Active</span>
+        : c.subStatus === "trial" ? <span className="bg bg-o">Essai</span>
+        : c.subStatus === "suspended" ? <span className="bg bg-g">Suspendue</span>
+        : <span className="bg bg-r">Impayée</span>,
+    },
+    {
+      id: "actions", entete: "", classeCell: "nowrap",
+      cell: (c) => <>
+        {c.subStatus === "past_due" && <><button className="btn btn-o btn-sm" onClick={() => om("mRelance")}>Relancer</button>{" "}</>}
+        <Link className="btn btn-o btn-sm" href={`/admin/entreprises/${c.id}`}>Ouvrir</Link>
+      </>,
+    },
+  ];
 
   return (
     <div>
-      <div className="tools">
-        <button className={`chip ${filtre === "toutes" ? "on" : ""}`} onClick={() => setFiltre("toutes")}>Toutes · {lignes.length}</button>
-        <button className={`chip ${filtre === "active" ? "on" : ""}`} onClick={() => setFiltre("active")}>Actives · {n("active")}</button>
-        <button className={`chip ${filtre === "trial" ? "on" : ""}`} onClick={() => setFiltre("trial")}>Essais · {n("trial")}</button>
-        <button className={`chip ${filtre === "past_due" ? "on" : ""}`} onClick={() => setFiltre("past_due")}>Impayées · {n("past_due")}</button>
-        <button className={`chip ${filtre === "suspended" ? "on" : ""}`} onClick={() => setFiltre("suspended")}>Suspendues · {n("suspended")}</button>
-        <span className="sp" />
-        <button className="btn btn-o btn-sm" onClick={() => toast("Export Excel des entreprises généré")}>⇩ Exporter</button>
-        <button className="btn btn-p btn-sm" onClick={() => om("mNouvelleEntreprise")}>+ Créer une entreprise</button>
-      </div>
-      <div className="panel">
-        <table>
-          <tbody>
-            <tr><th>Entreprise</th><th>Plan</th><th className="num">Salariés</th><th className="num">Utilisateurs</th><th className="num">MRR (GNF)</th><th>Statut</th><th></th></tr>
-            {liste.map((c) => (
-              <tr key={c.id}>
-                <td><b>{c.name}</b><br /><small style={{ color: "var(--gris)" }}>{c.nif ? `NIF ${c.nif} · ` : ""}{c.sector ?? ""} · {c.city ?? ""}</small></td>
-                <td><span className={`bg ${c.planNom === "Essai" ? "bg-o" : "bg-v"}`}>{c.planNom}</span></td>
-                <td className="gnf mono">{c.nbSalaries}</td>
-                <td className="gnf mono">{c.nbUsers}</td>
-                <td className="gnf">{c.mrr ? formatGNF(c.mrr) : "—"}</td>
-                <td>{c.subStatus === "active" ? <span className="bg bg-v">Active</span>
-                  : c.subStatus === "trial" ? <span className="bg bg-o">Essai</span>
-                  : c.subStatus === "suspended" ? <span className="bg bg-g">Suspendue</span>
-                  : <span className="bg bg-r">Impayée</span>}</td>
-                <td>
-                  {c.subStatus === "past_due" && <><button className="btn btn-o btn-sm" onClick={() => om("mRelance")}>Relancer</button>{" "}</>}
-                  <Link className="btn btn-o btn-sm" href={`/admin/entreprises/${c.id}`}>Ouvrir</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="pgn"><span>{lignes.length} entreprises · {lignes.reduce((s, l) => s + l.nbSalaries, 0)} salariés gérés au total</span></div>
-      </div>
+      <DataTable
+        colonnes={colonnes}
+        lignes={lignes}
+        cle={(c) => c.id}
+        recherchePar={(c) => `${c.name} ${c.nif ?? ""} ${c.sector ?? ""} ${c.city ?? ""}`}
+        placeholderRecherche="Nom, NIF, secteur, ville…"
+        filtres={[
+          { id: "toutes", label: "Toutes", n: lignes.length },
+          { id: "active", label: "Actives", n: n("active") },
+          { id: "trial", label: "Essais", n: n("trial") },
+          { id: "past_due", label: "Impayées", n: n("past_due") },
+          { id: "suspended", label: "Suspendues", n: n("suspended") },
+        ]}
+        filtrePredicat={(c, f) => f === "toutes" || c.subStatus === f}
+        actions={<>
+          <button className="btn btn-o btn-sm" onClick={() => toast("Export Excel des entreprises généré")}>⇩ Exporter</button>
+          <button className="btn btn-p btn-sm" onClick={() => om("mNouvelleEntreprise")}>+ Créer une entreprise</button>
+        </>}
+        piedLibelle={() => `${lignes.length} entreprises · ${lignes.reduce((s, l) => s + l.nbSalaries, 0)} salariés gérés au total`}
+        messageVide="Aucune entreprise ne correspond au filtre."
+      />
     </div>
   );
 }
