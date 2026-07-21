@@ -154,7 +154,7 @@ function ModaleMotDePasse() {
           </div>
           <div className="fld">
             <label>Confirmer le nouveau mot de passe</label>
-            <input type="password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} />
+            <input type="password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} placeholder="Retaper le mot de passe" />
           </div>
           {erreur && <div className="alert rg"><span className="ic">⚠</span><div>{erreur}</div></div>}
         </div>
@@ -213,7 +213,7 @@ function ModaleMonProfil() {
         <div className="mb">
           <div className="fgrid">
             <div className="fld w"><label>Nom complet</label><input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Prénom Nom" /></div>
-            <div className="fld"><label>Téléphone</label><input className="mono" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+            <div className="fld"><label>Téléphone</label><input className="mono" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Ex. : 628 44 12 07" /></div>
           </div>
         </div>
         <div className="mf">
@@ -277,10 +277,10 @@ function ModaleMesCoordonnees() {
         </div>
         <div className="mb">
           <div className="fgrid">
-            <div className="fld"><label>Téléphone</label><input className="mono" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
-            <div className="fld w"><label>Adresse</label><input value={adresse} onChange={(e) => setAdresse(e.target.value)} /></div>
-            <div className="fld"><label>Contact d’urgence</label><input value={urgNom} onChange={(e) => setUrgNom(e.target.value)} /></div>
-            <div className="fld"><label>Téléphone d’urgence</label><input className="mono" value={urgTel} onChange={(e) => setUrgTel(e.target.value)} /></div>
+            <div className="fld"><label>Téléphone</label><input className="mono" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Ex. : 628 44 12 07" /></div>
+            <div className="fld w"><label>Adresse</label><input value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Ex. : Commune de Ratoma, Conakry" /></div>
+            <div className="fld"><label>Contact d’urgence</label><input value={urgNom} onChange={(e) => setUrgNom(e.target.value)} placeholder="Ex. : Fatou CAMARA (épouse)" /></div>
+            <div className="fld"><label>Téléphone d’urgence</label><input className="mono" value={urgTel} onChange={(e) => setUrgTel(e.target.value)} placeholder="Ex. : 622 10 20 30" /></div>
           </div>
           <div className="alert vt">
             <span className="ic">✓</span>

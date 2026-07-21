@@ -299,36 +299,36 @@ export default function FicheEmploye() {
               {([
                 ["État civil", [
                   { k: "civility", l: "Civilité", opts: ["M.", "Mme", "Mlle"] },
-                  { k: "last_name", l: "Nom" },
-                  { k: "first_name", l: "Prénom" },
-                  { k: "birth_place", l: "Lieu de naissance" },
-                  { k: "nationality", l: "Nationalité" },
+                  { k: "last_name", l: "Nom", ph: "Ex. : CAMARA" },
+                  { k: "first_name", l: "Prénom", ph: "Ex. : Mariama" },
+                  { k: "birth_place", l: "Lieu de naissance", ph: "Ex. : Kankan" },
+                  { k: "nationality", l: "Nationalité", ph: "Ex. : Guinéenne" },
                   { k: "marital_status", l: "Situation matrimoniale", opts: ["Célibataire", "Marié(e)", "Divorcé(e)", "Veuf(ve)"] },
-                  { k: "children_count", l: "Nombre d’enfants", type: "number" },
-                  { k: "cnss_number", l: "N° CNSS" },
+                  { k: "children_count", l: "Nombre d’enfants", type: "number", ph: "0" },
+                  { k: "cnss_number", l: "N° CNSS", ph: "Ex. : 11905 1202" },
                   { k: "id_doc_type", l: "Type de pièce", opts: ["CNI", "Passeport", "Carte de séjour", "Permis de conduire"] },
-                  { k: "id_doc_number", l: "N° pièce d’identité" },
+                  { k: "id_doc_number", l: "N° pièce d’identité", ph: "Ex. : 001234567" },
                   { k: "id_doc_expiry", l: "Expiration pièce", type: "date" },
                 ]],
                 ["Coordonnées & urgence", [
-                  { k: "phone", l: "Téléphone" },
-                  { k: "email", l: "Email" },
-                  { k: "address", l: "Adresse", wide: true },
-                  { k: "emergency_contact_name", l: "Contact d’urgence" },
-                  { k: "emergency_contact_phone", l: "Téléphone d’urgence" },
+                  { k: "phone", l: "Téléphone", ph: "Ex. : 628 44 12 07" },
+                  { k: "email", l: "Email", ph: "Ex. : mariama.camara@garaya.gn" },
+                  { k: "address", l: "Adresse", wide: true, ph: "Ex. : Commune de Ratoma, Conakry" },
+                  { k: "emergency_contact_name", l: "Contact d’urgence", ph: "Ex. : Fatou CAMARA (épouse)" },
+                  { k: "emergency_contact_phone", l: "Téléphone d’urgence", ph: "Ex. : 622 10 20 30" },
                 ]],
                 ["Contrat", [
                   { k: "category", l: "Catégorie", opts: ["Employé", "Agent de maîtrise", "Cadre", "Cadre supérieur"] },
-                  { k: "qualification", l: "Qualification" },
+                  { k: "qualification", l: "Qualification", ph: "Ex. : Comptable senior" },
                   { k: "manager_id", l: "Supérieur (N+1)", managerSelect: true },
-                  { k: "monthly_hours", l: "Horaire mensuel (h)", type: "number", step: "0.01" },
+                  { k: "monthly_hours", l: "Horaire mensuel (h)", type: "number", step: "0.01", ph: "173,33" },
                 ]],
                 ["Banque & paiement", [
                   { k: "payment_mode", l: "Mode de paiement", opts: ["Virement", "Chèque", "Espèces"] },
-                  { k: "bank_name", l: "Banque" },
-                  { k: "bank_account", l: "N° de compte", wide: true },
+                  { k: "bank_name", l: "Banque", ph: "Ex. : Ecobank Guinée" },
+                  { k: "bank_account", l: "N° de compte", wide: true, ph: "Ex. : GN00 1234 5678 9012 3456" },
                 ]],
-              ] as [string, { k: string; l: string; opts?: string[]; type?: string; step?: string; wide?: boolean; managerSelect?: boolean }[]][]).map(([titre, champs]) => (
+              ] as [string, { k: string; l: string; opts?: string[]; type?: string; step?: string; wide?: boolean; managerSelect?: boolean; ph?: string }[]][]).map(([titre, champs]) => (
                 <div key={titre} className="edit-sec">
                   <div className="edit-sec-t">{titre}</div>
                   <div className="fgrid">
@@ -353,6 +353,7 @@ export default function FicheEmploye() {
                               type={c.type ?? "text"}
                               step={c.step}
                               min={c.type === "number" ? 0 : undefined}
+                              placeholder={c.ph}
                               value={val}
                               onChange={(e) => setEditForm({ ...editForm, [c.k]: e.target.value })}
                             />

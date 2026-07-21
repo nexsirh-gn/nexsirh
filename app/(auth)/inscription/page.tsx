@@ -67,8 +67,8 @@ export default function Inscription() {
                       <option>SARL</option><option>SARLU</option><option>SA</option><option>SAS</option>
                     </select>
                   </div>
-                  <div className="fld"><label>NIF</label><input className="mono" value={f.nif} onChange={set("nif")} /></div>
-                  <div className="fld"><label>N° employeur CNSS</label><input className="mono" value={f.cnssEmployeur} onChange={set("cnssEmployeur")} /></div>
+                  <div className="fld"><label>NIF</label><input className="mono" value={f.nif} onChange={set("nif")} placeholder="Ex. : 123456789" /></div>
+                  <div className="fld"><label>N° employeur CNSS</label><input className="mono" value={f.cnssEmployeur} onChange={set("cnssEmployeur")} placeholder="Ex. : 987654" /></div>
                   <div className="fld w"><label>Adresse</label><input value={f.adresse} onChange={set("adresse")} placeholder="Quartier, commune, ville" /></div>
                 </div>
                 <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
@@ -81,11 +81,11 @@ export default function Inscription() {
                 <h2>Votre compte administrateur</h2>
                 <p className="sub">Étape 3 sur 3 — Vous pourrez inviter d’autres utilisateurs ensuite.</p>
                 <div className="fgrid">
-                  <div className="fld"><label>Prénom *</label><input value={f.prenom} onChange={set("prenom")} /></div>
-                  <div className="fld"><label>Nom *</label><input value={f.nom} onChange={set("nom")} /></div>
-                  <div className="fld w"><label>Email professionnel *</label><input type="email" value={f.email} onChange={set("email")} /></div>
+                  <div className="fld"><label>Prénom *</label><input value={f.prenom} onChange={set("prenom")} placeholder="Ex. : Mariama" /></div>
+                  <div className="fld"><label>Nom *</label><input value={f.nom} onChange={set("nom")} placeholder="Ex. : CAMARA" /></div>
+                  <div className="fld w"><label>Email professionnel *</label><input type="email" value={f.email} onChange={set("email")} placeholder="Ex. : mariama.camara@garaya.gn" /></div>
                   <div className="fld"><label>Mot de passe *</label><input type="password" value={f.password} onChange={set("password")} placeholder="8 caractères min." /></div>
-                  <div className="fld"><label>Confirmation *</label><input type="password" value={f.confirmation} onChange={set("confirmation")} /></div>
+                  <div className="fld"><label>Confirmation *</label><input type="password" value={f.confirmation} onChange={set("confirmation")} placeholder="Retaper le mot de passe" /></div>
                 </div>
                 {erreur && <div className="alert rg"><span className="ic">⚠</span><div>{erreur}</div></div>}
                 <div style={{ display: "flex", gap: 10 }}>

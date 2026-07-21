@@ -98,13 +98,13 @@ export default function Parametrage() {
         <div className="panel" style={{ maxWidth: 760 }}>
           <div className="hd"><h3>Informations de l’entreprise</h3><span className="sp" /><button className="btn btn-p btn-sm" disabled={pending} onClick={enregistrer}>{pending ? "Enregistrement…" : "Enregistrer"}</button></div>
           <div className="bd fgrid">
-            <div className="fld"><label>Raison sociale</label><input value={v("name")} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-            <div className="fld"><label>Forme juridique</label><input value={v("legal_form")} onChange={(e) => setForm({ ...form, legal_form: e.target.value })} /></div>
-            <div className="fld"><label>NIF</label><input className="mono" value={v("nif")} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></div>
-            <div className="fld"><label>N° employeur CNSS</label><input className="mono" value={v("cnss_employer_number")} onChange={(e) => setForm({ ...form, cnss_employer_number: e.target.value })} /></div>
-            <div className="fld w"><label>Adresse</label><input value={v("address")} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
-            <div className="fld"><label>Convention collective</label><input value={v("convention")} onChange={(e) => setForm({ ...form, convention: e.target.value })} /></div>
-            <div className="fld"><label>Banque de paie</label><input value={v("bank_name")} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} /></div>
+            <div className="fld"><label>Raison sociale</label><input value={v("name")} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex. : GARAYA HOLDING" /></div>
+            <div className="fld"><label>Forme juridique</label><input value={v("legal_form")} onChange={(e) => setForm({ ...form, legal_form: e.target.value })} placeholder="Ex. : SARL" /></div>
+            <div className="fld"><label>NIF</label><input className="mono" value={v("nif")} onChange={(e) => setForm({ ...form, nif: e.target.value })} placeholder="Ex. : 123456789" /></div>
+            <div className="fld"><label>N° employeur CNSS</label><input className="mono" value={v("cnss_employer_number")} onChange={(e) => setForm({ ...form, cnss_employer_number: e.target.value })} placeholder="Ex. : 987654" /></div>
+            <div className="fld w"><label>Adresse</label><input value={v("address")} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Ex. : Immeuble Kaloum, Conakry" /></div>
+            <div className="fld"><label>Convention collective</label><input value={v("convention")} onChange={(e) => setForm({ ...form, convention: e.target.value })} placeholder="Ex. : Convention nationale interprofessionnelle" /></div>
+            <div className="fld"><label>Banque de paie</label><input value={v("bank_name")} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} placeholder="Ex. : Ecobank Guinée" /></div>
           </div>
         </div>
       )}
