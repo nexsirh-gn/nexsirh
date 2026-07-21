@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useModal, useToast } from "@/components/providers";
 import { useQuery, formatGNF, initiales } from "@/lib/hooks";
-
-type Filtre = "tous" | "actif" | "cdd" | "essai" | "sorti";
+import { DataTable, type Colonne } from "@/components/data-table";
 
 type RapportImport = {
   total: number; valides: number; enErreur: number;
@@ -16,8 +15,6 @@ type RapportImport = {
 export default function Employes() {
   const { om } = useModal();
   const toast = useToast();
-  const [filtre, setFiltre] = useState<Filtre>("tous");
-  const [recherche, setRecherche] = useState("");
   const [modalImport, setModalImport] = useState(false);
   const [fichier, setFichier] = useState<File | null>(null);
   const [rapport, setRapport] = useState<RapportImport | null>(null);
@@ -60,56 +57,57 @@ export default function Employes() {
   if (loading) return <div className="note">Chargement des salariés…</div>;
   if (error) return <div className="alert rg"><span className="ic">⚠</span><div>Erreur : {error}</div></div>;
   const tous = data!;
+  type Ligne = (typeof tous)[number];
 
-  const filtres: [Filtre, string, number][] = [
-    ["tous", "Tous", tous.length],
-    ["actif", "Actifs", tous.filter((e) => e.status === "actif").length],
-    ["cdd", "CDD", tous.filter((e) => e.contract_type === "CDD").length],
-    ["essai", "En essai", tous.filter((e) => e.status === "essai").length],
-    ["sorti", "Sortis", tous.filter((e) => e.status === "sorti").length],
+  const filtres = [
+    { id: "tous", label: "Tous", n: tous.length },
+    { id: "actif", label: "Actifs", n: tous.filter((e) => e.status === "actif").length },
+    { id: "cdd", label: "CDD", n: tous.filter((e) => e.contract_type === "CDD").length },
+    { id: "essai", label: "En essai", n: tous.filter((e) => e.status === "essai").length },
+    { id: "sorti", label: "Sortis", n: tous.filter((e) => e.status === "sorti").length },
   ];
-  const liste = tous
-    .filter((e) => filtre === "tous" || (filtre === "cdd" ? e.contract_type === "CDD" : e.status === filtre))
-    .filter((e) => !recherche || `${e.nom} ${e.matricule} ${e.poste}`.toLowerCase().includes(recherche.toLowerCase()));
+
+  const colonnes: Colonne<Ligne>[] = [
+    {
+      id: "nom", entete: "Salarié", triPar: (e) => e.nom,
+      cell: (e) => <div className="emp"><span className="av g">{initiales(e.nom)}</span><div><b>{e.nom}</b><small>{e.email}</small></div></div>,
+    },
+    { id: "matricule", entete: "Matricule", triPar: (e) => e.matricule, classeCell: "mono", cell: (e) => e.matricule },
+    { id: "poste", entete: "Poste · Département", triPar: (e) => e.poste, cell: (e) => `${e.poste} · ${e.departement}` },
+    {
+      id: "contrat", entete: "Contrat", triPar: (e) => e.contract_type,
+      cell: (e) => e.contract_type === "CDD" && e.contract_end_date
+        ? <span className="bg bg-r">CDD — {new Date(e.contract_end_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}</span>
+        : e.contract_type,
+    },
+    { id: "salaire", entete: "Salaire de base", num: true, triPar: (e) => e.salaire, classeCell: "gnf", cell: (e) => formatGNF(e.salaire) },
+    {
+      id: "statut", entete: "Statut", triPar: (e) => e.status,
+      cell: (e) => e.status === "actif" ? <span className="bg bg-v">Actif</span>
+        : e.status === "essai" ? <span className="bg bg-o">Période d’essai</span>
+        : e.status === "sorti" ? <span className="bg bg-g">Sorti</span>
+        : <span className="bg bg-r">Suspendu</span>,
+    },
+    { id: "actions", entete: "", cell: (e) => <Link className="btn btn-g btn-sm" href={`/employes/${e.matricule.toLowerCase()}`}>Ouvrir →</Link> },
+  ];
 
   return (
     <div>
-      <div className="tools">
-        <div className="srch" style={{ width: 300 }}>
-          <input placeholder="Nom, matricule, poste…" value={recherche} onChange={(e) => setRecherche(e.target.value)} />
-        </div>
-        {filtres.map(([id, label, n]) => (
-          <button key={id} className={`chip ${filtre === id ? "on" : ""}`} onClick={() => setFiltre(id)}>{label} · {n}</button>
-        ))}
-        <span className="sp" />
-        <button className="btn btn-o btn-sm" onClick={() => setModalImport(true)}>⇪ Importer Excel</button>
-        <button className="btn btn-p btn-sm" onClick={() => om("mNouvelEmploye")}>+ Nouvel employé</button>
-      </div>
-      <div className="panel">
-        <table>
-          <tbody>
-            <tr><th>Salarié</th><th>Matricule</th><th>Poste · Département</th><th>Contrat</th><th className="num">Salaire de base</th><th>Statut</th><th></th></tr>
-            {liste.map((e) => (
-              <tr key={e.id}>
-                <td><div className="emp"><span className="av g">{initiales(e.nom)}</span><div><b>{e.nom}</b><small>{e.email}</small></div></div></td>
-                <td className="mono">{e.matricule}</td>
-                <td>{e.poste} · {e.departement}</td>
-                <td>{e.contract_type === "CDD" && e.contract_end_date
-                  ? <span className="bg bg-r">CDD — {new Date(e.contract_end_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}</span>
-                  : e.contract_type}</td>
-                <td className="gnf">{formatGNF(e.salaire)}</td>
-                <td>{e.status === "actif" ? <span className="bg bg-v">Actif</span>
-                  : e.status === "essai" ? <span className="bg bg-o">Période d’essai</span>
-                  : e.status === "sorti" ? <span className="bg bg-g">Sorti</span>
-                  : <span className="bg bg-r">Suspendu</span>}</td>
-                <td><Link className="btn btn-g btn-sm" href={`/employes/${e.matricule.toLowerCase()}`}>Ouvrir →</Link></td>
-              </tr>
-            ))}
-            {liste.length === 0 && <tr><td colSpan={7} className="note">Aucun salarié ne correspond au filtre.</td></tr>}
-          </tbody>
-        </table>
-        <div className="pgn"><span>{liste.length} salarié{liste.length > 1 ? "s" : ""}</span></div>
-      </div>
+      <DataTable
+        colonnes={colonnes}
+        lignes={tous}
+        cle={(e) => e.id}
+        recherchePar={(e) => `${e.nom} ${e.matricule} ${e.poste}`}
+        placeholderRecherche="Nom, matricule, poste…"
+        filtres={filtres}
+        filtrePredicat={(e, f) => f === "tous" || (f === "cdd" ? e.contract_type === "CDD" : e.status === f)}
+        actions={<>
+          <button className="btn btn-o btn-sm" onClick={() => setModalImport(true)}>⇪ Importer Excel</button>
+          <button className="btn btn-p btn-sm" onClick={() => om("mNouvelEmploye")}>+ Nouvel employé</button>
+        </>}
+        piedLibelle={(n) => `${n} salarié${n > 1 ? "s" : ""}`}
+        messageVide="Aucun salarié ne correspond au filtre."
+      />
 
       {/* Modale import Excel — prévisualisation puis import réel */}
       {modalImport && (
