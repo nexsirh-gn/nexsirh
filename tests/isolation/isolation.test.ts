@@ -191,3 +191,160 @@ describe("Barèmes légaux — lecture partagée, écriture super_admin uniqueme
     expect(data ?? []).toHaveLength(0);
   });
 });
+
+/**
+ * Non-régressions de l'audit de sécurité du 30/10/2026
+ * (migration 20261030090001_rls_durcissement).
+ */
+describe("Élévation de privilège — un salarié ne se promeut jamais", () => {
+  it("CAMARA ne peut pas passer son propre rôle à admin", async () => {
+    const c = await loginAs("b.camara@garaya.gn");
+    const { data: { user } } = await c.auth.getUser();
+    const { error } = await c.from("profiles").update({ role: "admin" }).eq("id", user!.id);
+    expect(error).not.toBeNull();
+    const { data } = await c.from("profiles").select("role").eq("id", user!.id).single();
+    expect(data!.role).toBe("employe");
+  });
+
+  it("CAMARA ne peut pas passer son propre rôle à super_admin", async () => {
+    const c = await loginAs("b.camara@garaya.gn");
+    const { data: { user } } = await c.auth.getUser();
+    const { error } = await c.from("profiles")
+      .update({ role: "super_admin", company_id: null }).eq("id", user!.id);
+    expect(error).not.toBeNull();
+  });
+
+  it("CAMARA ne peut pas se rattacher à une autre entreprise", async () => {
+    const c = await loginAs("b.camara@garaya.gn");
+    const { data: { user } } = await c.auth.getUser();
+    const { error } = await c.from("profiles").update({ company_id: injelecId }).eq("id", user!.id);
+    expect(error).not.toBeNull();
+  });
+
+  it("CAMARA ne peut pas se rattacher au dossier salarié d'un collègue", async () => {
+    const c = await loginAs("m.tolno@garaya.gn");
+    const { data: autre } = await c.from("employees").select("id").eq("matricule", "EMP-009").single();
+    const emp = await loginAs("b.camara@garaya.gn");
+    const { data: { user } } = await emp.auth.getUser();
+    const { error } = await emp.from("profiles").update({ employee_id: autre!.id }).eq("id", user!.id);
+    expect(error).not.toBeNull();
+  });
+});
+
+describe("Évasion de tenant par UPDATE (WITH CHECK)", () => {
+  it("l'admin GARAYA ne peut pas déplacer un département chez INJELEC", async () => {
+    const c = await loginAs("m.tolno@garaya.gn");
+    const { data: dep } = await c.from("departments").select("id").limit(1).single();
+    const { data, error } = await c.from("departments")
+      .update({ company_id: injelecId }).eq("id", dep!.id).select();
+    expect(error !== null || (data ?? []).length === 0).toBe(true);
+  });
+
+  it("l'admin GARAYA ne peut pas déplacer un salarié chez INJELEC", async () => {
+    const c = await loginAs("m.tolno@garaya.gn");
+    const { data: emp } = await c.from("employees").select("id").limit(1).single();
+    const { data, error } = await c.from("employees")
+      .update({ company_id: injelecId }).eq("id", emp!.id).select();
+    expect(error !== null || (data ?? []).length === 0).toBe(true);
+  });
+
+  it("l'admin GARAYA ne peut pas renuméroter un matricule", async () => {
+    const c = await loginAs("m.tolno@garaya.gn");
+    const { data: emp } = await c.from("employees").select("id").eq("matricule", "EMP-007").single();
+    const { error } = await c.from("employees").update({ matricule: "EMP-999" }).eq("id", emp!.id);
+    expect(error).not.toBeNull();
+  });
+
+  it("l'admin GARAYA ne peut pas toucher au statut d'abonnement (champ plateforme)", async () => {
+    const c = await loginAs("m.tolno@garaya.gn");
+    const { data: avant } = await c.from("companies").select("status").eq("id", garayaId).single();
+    // Un statut forcément DIFFÉRENT de l'actuel : un UPDATE qui ne change rien
+    // ne déclenche pas le garde (et n'a d'ailleurs rien à interdire).
+    const cible = avant!.status === "active" ? "read_only" : "active";
+
+    const { error } = await c.from("companies").update({ status: cible }).eq("id", garayaId);
+    expect(error).not.toBeNull();
+
+    const { error: eMotif } = await c.from("companies")
+      .update({ suspension_reason: "levée par le client" }).eq("id", garayaId);
+    expect(eMotif).not.toBeNull();
+
+    const { data: apres } = await c.from("companies").select("status, suspension_reason").eq("id", garayaId).single();
+    expect(apres!.status).toBe(avant!.status);
+    expect(apres!.suspension_reason).toBeNull();
+  });
+
+  it("l'admin INJELEC ne peut pas générer un matricule chez GARAYA", async () => {
+    const c = await loginAs("admin@injelec.gn");
+    const { error } = await c.rpc("next_matricule", { p_company: garayaId });
+    expect(error).not.toBeNull();
+  });
+});
+
+describe("Workflow de congés — non contournable par le salarié", () => {
+  it("CAMARA ne peut pas créer une demande déjà approuvée", async () => {
+    const c = await loginAs("b.camara@garaya.gn");
+    const { data: emp } = await c.from("employees").select("id, company_id").single();
+    const { error } = await c.from("leave_requests").insert({
+      company_id: emp!.company_id, employee_id: emp!.id, leave_type_code: "CA",
+      start_date: "2026-12-01", end_date: "2026-12-03", working_days: 3,
+      status: "approuve",
+    });
+    expect(error).not.toBeNull();
+  });
+
+  it("CAMARA ne peut pas approuver sa propre demande en attente", async () => {
+    const c = await loginAs("b.camara@garaya.gn");
+    const { data: emp } = await c.from("employees").select("id, company_id").single();
+    const { data: dem, error: eIns } = await c.from("leave_requests").insert({
+      company_id: emp!.company_id, employee_id: emp!.id, leave_type_code: "CA",
+      start_date: "2026-12-10", end_date: "2026-12-11", working_days: 2,
+      status: "attente_manager",
+    }).select("id").single();
+    expect(eIns).toBeNull();
+
+    const { data: up } = await c.from("leave_requests")
+      .update({ status: "approuve" }).eq("id", dem!.id).select();
+    expect(up ?? []).toHaveLength(0);
+
+    // l'annulation, elle, reste permise
+    const { data: annul } = await c.from("leave_requests")
+      .update({ status: "annule" }).eq("id", dem!.id).select();
+    expect(annul).toHaveLength(1);
+
+    // La suite doit être rejouable : on retire la demande créée pour le test
+    // (aucun rôle client ne peut supprimer une demande — service_role requis).
+    const svc = createClient(URL, SERVICE, { auth: { persistSession: false } });
+    await svc.from("leave_requests").delete().eq("id", dem!.id);
+  });
+
+  it("un salarié ne peut pas déposer une demande au nom d'un collègue", async () => {
+    const rh = await loginAs("m.tolno@garaya.gn");
+    const { data: autre } = await rh.from("employees").select("id, company_id").eq("matricule", "EMP-009").single();
+    const c = await loginAs("b.camara@garaya.gn");
+    const { error } = await c.from("leave_requests").insert({
+      company_id: autre!.company_id, employee_id: autre!.id, leave_type_code: "CA",
+      start_date: "2026-12-15", end_date: "2026-12-16", working_days: 2,
+      status: "attente_manager",
+    });
+    expect(error).not.toBeNull();
+  });
+});
+
+describe("Pointages (timesheet_entries) — plus de lecture ouverte au tenant", () => {
+  it("CAMARA ne voit aucun pointage qui ne soit pas le sien", async () => {
+    const c = await loginAs("b.camara@garaya.gn");
+    const { data: mesFeuilles } = await c.from("timesheets").select("id");
+    const miennes = new Set((mesFeuilles ?? []).map((t) => t.id));
+    const { data: entries } = await c.from("timesheet_entries").select("timesheet_id");
+    expect((entries ?? []).every((e) => miennes.has(e.timesheet_id))).toBe(true);
+  });
+
+  it("le manager PLEGNEMOU ne voit pas les pointages hors de son équipe", async () => {
+    const c = await loginAs("g.plegnemou@garaya.gn");
+    const { data: visibles } = await c.from("timesheets").select("id");
+    const autorisees = new Set((visibles ?? []).map((t) => t.id));
+    const { data: entries } = await c.from("timesheet_entries").select("timesheet_id");
+    expect((entries ?? []).every((e) => autorisees.has(e.timesheet_id))).toBe(true);
+  });
+});
